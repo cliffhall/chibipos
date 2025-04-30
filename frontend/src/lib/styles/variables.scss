@@ -1,0 +1,31 @@
+:root {
+	// Fonts
+	--font-text: 'Roboto', sans-serif;
+	--font-numbers: 'Roboto Mono', sans-serif;
+	--font-titles: 'Bakbak One', sans-serif;
+	// COLORS
+	--color-bg: #191d22;
+	--color-hover: #22282f;
+	--color-accent: #fbc02a;
+	--color-darker: #101316;
+	--color-text: #ebebeb;
+	--color-light: #d9d9d9;
+	--color-panel1: #3b4046;
+	--color-panel2: #34383e;
+	--color-panel: #3a3f45;
+	--color-thead: #2a292d;
+	--color-tablerow-alt: #32363c;
+	--color-footer: #d9d9d9;
+	--color-text-secondary: #aeaeae;
+	--color-ready: rgb(149, 255, 96);
+	// MISC
+	--panel-border: 14px;
+	--panel-padding: 1.5em;
+	--ticketCol-width: 400px;
+	--nav-height: 4em;
+	--layout-gap: 2em;
+	// Buttons
+	--circle-size: 2em;
+	--button-height: 3.5rem;
+	--button-height: 3rem;
+}
