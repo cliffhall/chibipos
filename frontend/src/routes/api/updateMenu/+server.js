@@ -42,10 +42,11 @@ export async function POST({ request }) {
           name: product.nombre,
           image: product.image,
           price: product.precio,
-          catproduct_id: product.catproducto_id
+          catproduct_id: product.catproducto_id,
+          status_active: product.status_active
         })),
         {
-          updateOnDuplicate: ['name', 'image', 'price', 'catproduct_id']
+          updateOnDuplicate: ['name', 'image', 'price', 'catproduct_id', 'status_active']
         }
       )
     }

@@ -27,6 +27,9 @@ export const Product = db.define('product', {
       model: CatProduct,
       key: 'id',
     }
+  },
+  status_active: {
+    type: DataTypes.BOOLEAN,
   }
 }, {
   tableName: 'product'

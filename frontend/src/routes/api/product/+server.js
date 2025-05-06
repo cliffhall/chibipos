@@ -5,6 +5,7 @@ import { Product } from '$lib/db/models/product.js'
 export async function GET() {
   try {
     const products = await Product.findAll({
+      where: { status_active: true },
       order: [['name', 'ASC']]
     })
     return json(products)
