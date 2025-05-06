@@ -1,53 +1,47 @@
+// /Users/cliffhall/Projects/chibipos/frontend/src/lib/db/config.js
 import { Sequelize } from 'sequelize';
-import path from 'path'
+import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-// import '$lib/db/associations.js'
 
+// --- Database Configuration ---
+const DATABASE_FILENAME = 'database.sqlite'; // Your database filename
 
-const dbPath = path.resolve(process.cwd(), 'database.sqlite')
+// Get the directory of the current module (config.js)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = dirname(__filename);
+// Construct the path to the 'frontend' directory
+// __dirname is /Users/cliffhall/Projects/chibipos/frontend/src/lib/db
+// path.resolve(__dirname, '../../..') goes up to /Users/cliffhall/Projects/chibipos/frontend/
+const frontendDir = path.resolve(__dirname, '..', '..', '..');
+const dbPath = path.join(frontendDir, DATABASE_FILENAME);
 
-// const isDev = process.env.NODE_ENV === 'development';
-let isDev = true
+console.log(`[db/config.js] Using database at: ${dbPath}`);
 
-// const dbPath = isDev
-//   ? path.resolve(process.cwd(), 'database.sqlite')   // Local dev path
-//   : path.join(process.resourcesPath, 'database.sqlite');      // Packaged app path
-
-// let dbPath
-// if (import.meta.env.MODE === 'development') {
-//   // SvelteKit dev server or Electron dev mode
-//   dbPath = path.resolve(process.cwd(), 'database.sqlite');
-// } else {
-//   window.api.onUserDataPath((path) => {
-//     process.env.USER_DATA_PATH = path
-//   })
-//   // Production build inside Electron
-//   const userData = path.join(process.env.USER_DATA_PATH || '', 'database.sqlite');
-//   dbPath = userData;
-// }
-
-
+// Initialize your ORM instance (e.g., Sequelize)
 const sequelize = new Sequelize({
-  host: 'localhost',
-  dialect: "sqlite",
-  storage: dbPath,
-
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
+  dialect: 'sqlite',
+  storage: dbPath, // This is the crucial part
+  logging: (msg) => console.log(`[Sequelize ORM] ${msg}`), // Made logging more distinct
+  // Add other ORM configurations as needed
 });
 
-sequelize.authenticate()
-  .then(() => console.log('database connected'))
-  .then(() => console.log('dbPath: ', dbPath))
-  .catch((error) => console.error('unable to connect to database: ', error))
+// Test the connection (optional but recommended)
+async function testConnection() {
+  try {
+    await sequelize.authenticate();
+    console.log('[db/config.js] Connection to database has been established successfully.');
+  } catch (error) {
+    console.error('[db/config.js] Unable to connect to the database:', error);
+    // Depending on your setup, you might want to throw the error
+    // or handle it to prevent the app from starting if the DB is unavailable.
+  }
+}
 
+// It's good practice to call async functions and handle their promises,
+// even if it's just for logging, especially at the module level.
+testConnection().catch(err => {
+  console.error('[db/config.js] Error during async testConnection execution (caught at top level):', err);
+});
 
-export default sequelize;
+export default sequelize; // Export the configured ORM instance

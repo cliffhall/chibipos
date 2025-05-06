@@ -9,9 +9,7 @@ module.exports = {
     asar: {
       unpack: "**/node_modules/sqlite3/**"
     },
-    // extraResource: 'src/dist',
     extraResource: [
-      'src/dist',
       'frontend/database.sqlite'
     ],
     prune: false
@@ -40,24 +38,23 @@ module.exports = {
       name: '@electron-forge/plugin-vite',
       config: {
         // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
-        // If you are familiar with Vite configuration, it will look really familiar.
         build: [
           {
             // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
             entry: 'src/main.js',
-            config: 'vite.main.config.mjs',
-            target: 'main',
+            config: 'vite.main.config.mjs', // Correctly points to your main process Vite config
+            target: 'main', // Likely an internal identifier for the plugin
           },
           {
             entry: 'src/preload.js',
-            config: 'vite.preload.config.mjs',
-            target: 'preload',
+            config: 'vite.preload.config.mjs', // Points to a Vite config for your preload script
+            target: 'preload', // Likely an internal identifier for the plugin
           },
         ],
         renderer: [
           {
-            name: 'main_window',
-            config: 'vite.renderer.config.mjs',
+            name: 'main_window', // Name of your renderer process
+            config: 'vite.renderer.config.mjs', // Points to a Vite config for your Svelte frontend
           },
         ],
       },

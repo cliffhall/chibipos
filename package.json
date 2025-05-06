@@ -11,9 +11,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
-    "dev:svelte": "cd frontend && npm run dev",
-    "dev:electron": "npm run start",
-    "dev": "concurrently 'npm run dev:svelte' 'npm run dev:electron'"
+    "dev": "electron-forge start"
   },
   "keywords": [],
   "author": "guillermo",
@@ -28,12 +26,14 @@
     "@electron-forge/plugin-fuses": "^7.7.0",
     "@electron-forge/plugin-vite": "^7.7.0",
     "@electron/fuses": "^1.8.0",
+    "@sveltejs/kit": "^2.16.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "concurrently": "^9.1.2",
     "electron": "35.0.2",
     "electron-rebuild": "^3.2.9",
     "escpos-usb": "^3.0.0-alpha.4",
     "fs-extra": "^11.3.0",
-    "vite": "^5.4.14",
+    "vite": "^6.0.0",
     "vite-plugin-static-copy": "^2.3.1"
   },
   "dependencies": {
