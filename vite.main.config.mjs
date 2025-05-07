@@ -23,8 +23,8 @@ export default defineConfig({
         'escpos-network',
         'escpos-usb',
         'wait-on',
-        'sequelize',   // <--- ADD THIS LINE
-        'crypto-js',   // <--- ALSO ADD THIS for const CryptoJS = require('crypto-js');
+        'sequelize',
+        'crypto-js',
       ],
       plugins: [
         commonjs({
