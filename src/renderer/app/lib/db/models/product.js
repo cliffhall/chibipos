@@ -1,5 +1,5 @@
 // /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/product.js
-import { DataTypes } from 'sequelize';
+const DataTypes = require( 'sequelize');
 
 // This function will be called by main.js, passing the initialized sequelize instance.
 // It's a good practice to also pass DataTypes if you want to centralize its import,

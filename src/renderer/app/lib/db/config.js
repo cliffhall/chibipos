@@ -1,52 +1,39 @@
-// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/config.js
-import { Sequelize } from 'sequelize';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// src/renderer/app/lib/db/config.js
+import path from 'node:path'; // Or const path = require('node:path');
+import fs from 'node:fs';   // Or const fs = require('node:fs');
 
-// This function will be called from main.js, which will pass the Electron `app` object.
-function getDbPath(electronApp) {
-  const DATABASE_FILENAME = 'database.sqlite';
-  const isPackaged = electronApp.isPackaged;
+// Removed: const Sequelize = require('sequelize'); (or import) - it will be passed in
 
-  if (!isPackaged) { // Development mode
-    // __filename for this config.js: /.../chibipos/src/renderer/app/lib/db/config.js
-    const __configJsFilename = fileURLToPath(import.meta.url);
-    const __configJsDirname = path.dirname(__configJsFilename);
+export function initializeSequelize(app, SequelizeConstructor) { // Accept SequelizeConstructor
+  const userDataPath = app.getPath('userData');
+  // It's good practice to put app-specific data in a subdirectory
+  const appDataDir = path.join(userDataPath, 'chibipos');
 
-    // Resolve path to project root (chibipos/) from src/renderer/app/lib/db/
-    // ../../../../.. (5 levels up)
-    const projectRoot = path.resolve(__configJsDirname, '..', '..', '..', '..', '..');
-    return path.join(projectRoot, DATABASE_FILENAME);
-  } else { // Production mode
-    // In production, the database will reside in the userData directory.
-    // main.js will be responsible for copying it there on first run.
-    const userDataPath = electronApp.getPath('userData');
-    return path.join(userDataPath, DATABASE_FILENAME);
+  // Ensure the app-specific directory exists
+  if (!fs.existsSync(appDataDir)) {
+    fs.mkdirSync(appDataDir, { recursive: true });
+    console.log(`[db/config.js] Created directory: ${appDataDir}`);
   }
-}
 
-export function initializeSequelize(electronApp) {
-  const dbPath = getDbPath(electronApp);
+  const dbPath = path.join(appDataDir, 'database.sqlite');
   console.log(`[db/config.js] Using database at: ${dbPath}`);
 
-  const sequelize = new Sequelize({
+  const sequelize = new SequelizeConstructor({ // Use the passed-in constructor
     dialect: 'sqlite',
     storage: dbPath,
-    logging: (msg) => console.log(`[Sequelize ORM] ${msg}`), // Or false to disable logging
-    // Add other ORM configurations as needed
+    logging: !app.isPackaged ? console.log : false, // Log SQL in dev, not in prod
+    // Add any other Sequelize options you need
   });
 
-  // Optional: A function to test the connection, callable from main.js
   async function testConnection() {
     try {
       await sequelize.authenticate();
-      console.log(`[db/config.js] Connection to database at ${dbPath} has been established successfully.`);
+      console.log('[db/config.js] Database connection has been established successfully.');
     } catch (error) {
-      console.error(`[db/config.js] Unable to connect to the database at ${dbPath}:`, error);
-      throw error; // Re-throw to be handled by the caller in main.js
+      console.error('[db/config.js] Unable to connect to the database:', error);
+      throw error; // Re-throw to be caught by the caller
     }
   }
 
-  // Return the initialized instance and the test function
   return { sequelize, testConnection, dbPath };
 }

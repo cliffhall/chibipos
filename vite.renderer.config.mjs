@@ -1,7 +1,8 @@
 // vite.renderer.config.mjs
-import { defineConfig } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte'; // Import Svelte plugin
 import path from 'path';
+import { defineConfig } from 'vite';
+import commonjs from '@rollup/plugin-commonjs';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 const rendererRoot = path.resolve(__dirname, 'src/renderer');
 
@@ -9,19 +10,27 @@ export default defineConfig({
     root: rendererRoot, // Vite project root is src/renderer
     plugins: [
         svelte({
-            // Path to your svelte.config.js, relative to this Vite config's root
-            // or an absolute path.
-            // Since vite.renderer.config.mjs is in the project root,
-            // and svelte.config.js is now in src/renderer/
-            configFile: path.resolve(rendererRoot, 'svelte.config.js'),
+            configFile: path.resolve(rendererRoot, 'svelte.config.mjs'),
+        }),
+        commonjs({
+            include: [
+                /node_modules\/sequelize/,
+                // Add other CJS dependencies here if they cause issues
+            ],
+            transformMixedEsModules: true,
+            interop: 'default', // Keep this, as it's designed for module.exports.default
+            // This option can help when a CJS module's require() should yield a default export.
+            // 'auto' will try to heuristically determine this. 'true' is more assertive.
+            requireReturnsDefault: 'auto',
         }),
     ],
-    // ... other Electron Forge Vite plugin settings ...
     build: {
-        outDir: path.resolve(__dirname, '.vite/renderer'), // Standard Electron Forge output
-        // ...
+        outDir: path.resolve(__dirname, '.vite/renderer'),
     },
-    // publicDir: 'public', // This is relative to the `root` (src/renderer)
-    // So it will look for src/renderer/public
+    // Explicitly tell Vite to pre-bundle sequelize.
+    // This can often help resolve CJS/ESM interop issues as Vite's esbuild-based
+    // pre-bundling is quite good at converting CJS to ESM.
+    optimizeDeps: {
+        include: ['sequelize'],
+    },
 });
-

@@ -14,7 +14,6 @@
     "prepare": "svelte-kit sync",
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint ."
-    
   },
   "keywords": [],
   "author": "guillermo",
@@ -29,17 +28,16 @@
     "@electron-forge/plugin-fuses": "^7.7.0",
     "@electron-forge/plugin-vite": "^7.7.0",
     "@electron/fuses": "^1.8.0",
+    "@eslint/compat": "^1.2.5",
+    "@eslint/js": "^9.18.0",
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@sveltejs/adapter-node": "^5.2.12",
+    "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.16.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "electron": "35.0.2",
     "electron-rebuild": "^3.2.9",
     "escpos-usb": "^3.0.0-alpha.4",
-    "vite": "^6.0.0",
-    "vite-plugin-static-copy": "^2.3.1",
-    "@eslint/compat": "^1.2.5",
-    "@eslint/js": "^9.18.0",
-    "@sveltejs/adapter-node": "^5.2.12",
-    "@sveltejs/adapter-static": "^3.0.8",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-svelte": "^3.0.0",
@@ -48,17 +46,20 @@
     "prettier-plugin-svelte": "^3.3.3",
     "sass": "^1.86.0",
     "svelte": "^5.0.0",
-    "svelte-preprocess": "^6.0.3"
+    "svelte-preprocess": "^6.0.3",
+    "vite": "^6.0.0",
+    "vite-plugin-static-copy": "^2.3.1"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
     "electron-squirrel-startup": "^1.0.1",
     "escpos": "^3.0.0-alpha.6",
     "escpos-network": "^3.0.0-alpha.5",
-    "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7",
-    "wait-on": "^8.0.3",
-    "crypto-js": "^4.2.0",
     "fs-extra": "^11.3.0",
-    "gsap": "file:gsap-bonus.tgz"
+    "gsap": "file:gsap-bonus.tgz",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^7.0.0-next.1",
+    "sqlite3": "^5.1.7",
+    "wait-on": "^8.0.3"
   }
 }
