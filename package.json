@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
+  "type": "module",
   "scripts": {
     "start": "electron-forge start",
     "build": "vite build --config vite.main.config.mjs",
@@ -11,6 +12,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "dev": "electron-forge start",
+    "prepare1": "cd src/renderer/app && svelte-kit sync && cd ../../..",
     "prepare": "svelte-kit sync",
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint ."
@@ -33,7 +35,7 @@
     "@rollup/plugin-commonjs": "^28.0.3",
     "@sveltejs/adapter-node": "^5.2.12",
     "@sveltejs/adapter-static": "^3.0.8",
-    "@sveltejs/kit": "^2.16.0",
+    "@sveltejs/kit": "^2.20.8",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "electron": "35.0.2",
     "electron-rebuild": "^3.2.9",

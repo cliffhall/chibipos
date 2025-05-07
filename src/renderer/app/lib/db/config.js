@@ -18,7 +18,7 @@ export function initializeSequelize(app, SequelizeConstructor) { // Accept Seque
   const dbPath = path.join(appDataDir, 'database.sqlite');
   console.log(`[db/config.js] Using database at: ${dbPath}`);
 
-  const sequelize = new SequelizeConstructor({ // Use the passed-in constructor
+  const sequelize = new SequelizeConstructor({
     dialect: 'sqlite',
     storage: dbPath,
     logging: !app.isPackaged ? console.log : false, // Log SQL in dev, not in prod
