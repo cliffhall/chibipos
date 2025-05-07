@@ -5,14 +5,12 @@ const fs = require('fs-extra')
 
 module.exports = {
   packagerConfig: {
-    // asar: true,
     asar: {
       unpack: "**/node_modules/sqlite3/**"
     },
     extraResource: [
-      'frontend/database.sqlite'
-    ],
-    prune: false
+      './database.sqlite'
+    ]
   },
 
   makers: [
