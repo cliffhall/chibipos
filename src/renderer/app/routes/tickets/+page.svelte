@@ -5,7 +5,7 @@
 	import cardIcon from '$lib/img/icons/card-yellow.svg';
 	import cashIcon from '$lib/img/icons/cash-yellow.svg';
 	import { fly, fade, slide } from 'svelte/transition';
-	import { printerConfig } from '$lib/stores/shared.svelte.js'
+	import { printerConfig } from '../../lib/stores/shared.svelte.js'
 
 
 	let { data } = $props();

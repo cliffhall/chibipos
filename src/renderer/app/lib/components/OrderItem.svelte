@@ -1,7 +1,7 @@
 <script>
 	import plusIcon from '$lib/img/icons/plus.svg';
 	import deleteIcon from '$lib/img/icons/delete.svg';
-	import { cart } from '$lib/stores/shared.svelte.js';
+	import { cart } from '../stores/shared.svelte.js';
 	import { slide, fly, fade } from 'svelte/transition';
 
 	let { item } = $props();

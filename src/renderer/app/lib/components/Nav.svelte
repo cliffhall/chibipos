@@ -1,5 +1,5 @@
 <script>
-	import {printerConfig} from '$lib/stores/shared.svelte.js'
+	import {printerConfig} from '../stores/shared.svelte.js'
 
 	async function changeTicketDate() {
 		const response = await fetch('/api/ticket', {

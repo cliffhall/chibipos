@@ -1,5 +1,5 @@
 <script>
-	import { cart } from '$lib/stores/shared.svelte.js';
+	import { cart } from '../stores/shared.svelte.js';
 	import { fly, fade } from 'svelte/transition';
 
 	let { product } = $props();

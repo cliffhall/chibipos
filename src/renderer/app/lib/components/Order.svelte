@@ -12,7 +12,7 @@
 	import OrderItem from '$lib/components/OrderItem.svelte';
 	import ActionButton from './ActionButton.svelte';
 	// Data
-	import { cart } from '$lib/stores/shared.svelte.js';
+	import { cart } from '../stores/shared.svelte.js';
 
 	let subtotal = $derived(
 		cart.reduce((acc, item) => {

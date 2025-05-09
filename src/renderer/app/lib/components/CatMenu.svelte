@@ -1,5 +1,5 @@
 <script>
-	import { selectedCat } from '$lib/stores/shared.svelte.js';
+	import { selectedCat } from '../stores/shared.svelte.js';
 	let { cats } = $props();
 	import { invalidateAll } from '$app/navigation';
 
