@@ -1,5 +1,7 @@
 // /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/ticketDetails.js
-const DataTypes = require( 'sequelize');
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
 
 export function defineTicketDetails(sequelize) {
   const TicketDetails = sequelize.define('ticket_details', {

@@ -1,5 +1,6 @@
 // /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/daily_sales.js
-const DataTypes = require( 'sequelize');
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
 
 export function defineDailySales(sequelize) {
   const DailySales = sequelize.define('daily_sales', {

@@ -9,14 +9,15 @@ export default defineConfig({
     outDir: '.vite/build', // Ensure this matches your setup
     lib: { // Ensure this is correctly configured for your main process entry
       entry: 'src/main.js',
-      formats: ['cjs'],
-      fileName: () => 'main.js',
+      formats: ['es'],
+      fileName: (format) => `main.${format === 'es' ? 'js' : format}`,
     },
     rollupOptions: {
       external: [
         'electron',
         ...builtinModules,
         ...builtinModules.map(mod => `node:${mod}`),
+        'electron-squirrel-startup',
         'sqlite3',
         'serialport',
         'escpos',

@@ -10,9 +10,10 @@ import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { readFile } from 'fs/promises';
 import path from 'node:path';
 import fs from 'node:fs';
-// Assuming config.js now exports initializeSequelize that accepts (app, SequelizeConstructor)
-import { initializeSequelize } from './renderer/app/lib/db/config.js';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
+import { initializeSequelize } from './renderer/app/lib/db/config.js';
 import { defineCatProduct } from './renderer/app/lib/db/models/catProduct.js';
 import { defineProduct } from './renderer/app/lib/db/models/product.js';
 import { defineDailySales } from './renderer/app/lib/db/models/daily_sales.js';
@@ -22,28 +23,24 @@ import { defineTicketDetails } from './renderer/app/lib/db/models/ticketDetails.
 import { setupAssociations } from './renderer/app/lib/db/associations.js';
 
 // Robustly get Sequelize constructor and Op
-const sequelizePackage = require('sequelize');
-const ResolvedSequelize = sequelizePackage.Sequelize || sequelizePackage.default || sequelizePackage;
-const ResolvedOp = sequelizePackage.Op;
+import sequelizePackage from 'sequelize';
+const { Sequelize: ResolvedSequelizeConstructor, Op: ResolvedOp, DataTypes: SequelizeDataTypes } = sequelizePackage;
 
 // Runtime check for ResolvedSequelize
-if (typeof ResolvedSequelize !== 'function') {
-  const errorMsg = '[Main Process] Critical: ResolvedSequelize is not a constructor function.';
-  console.error(errorMsg, 'Type:', typeof ResolvedSequelize, 'Package keys:', Object.keys(sequelizePackage).join(', '));
-  // Attempt to show a dialog before quitting, if app is available enough
+if (typeof ResolvedSequelizeConstructor !== 'function') {
+  const errorMsg = '[Main Process] Critical: ResolvedSequelizeConstructor is not a constructor function.';
+  console.error(errorMsg, 'Type:', typeof ResolvedSequelizeConstructor, 'Package keys:', Object.keys(sequelizePackage).join(', '));
   if (dialog && typeof dialog.showErrorBox === 'function') {
     dialog.showErrorBox("Initialization Error", "Failed to load database library (Sequelize). The application cannot start.");
   }
-  // Ensure app quits if this critical step fails
   if (app && typeof app.quit === 'function' && (typeof app.isQuitting !== 'function' || !app.isQuitting())) {
     app.quit();
   }
-  throw new Error(errorMsg); // Throw to halt further execution
+  throw new Error(errorMsg);
 }
 
-
-const CryptoJS = require('crypto-js');
-const started = require( 'electron-squirrel-startup');
+import CryptoJS from 'crypto-js';
+const started = require('electron-squirrel-startup');
 
 
 // print functions
@@ -93,7 +90,7 @@ let dbModels = {};
 async function initializeDatabase() {
   try {
     // Pass the resolved Sequelize constructor from main.js to the initializer function
-    const { sequelize, testConnection, dbPath } = initializeSequelize(app, ResolvedSequelize);
+    const { sequelize, testConnection, dbPath } = initializeSequelize(app, ResolvedSequelizeConstructor);
     sequelizeInstance = sequelize;
 
     // Database copying logic for production

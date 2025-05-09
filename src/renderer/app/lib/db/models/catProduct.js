@@ -1,5 +1,6 @@
 // /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/catProduct.js
-const DataTypes = require( 'sequelize');
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
 
 export function defineCatProduct(sequelize) { // Renamed from 'CatProduct' to 'defineCatProduct'
   const CatProduct = sequelize.define('cat_product', { // Model name is 'cat_product'
