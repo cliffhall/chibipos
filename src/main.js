@@ -10,6 +10,11 @@ import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { readFile } from 'fs/promises';
 import path from 'node:path';
 import fs from 'node:fs';
+
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 

@@ -5,6 +5,9 @@ import path from 'path'
 
 escpos.Network = escposNetwork;
 
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default async function printSale(event, data) {
   console.log('printSale')

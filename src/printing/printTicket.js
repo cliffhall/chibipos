@@ -7,6 +7,9 @@ import path from 'path'
 escpos.USB = escposUSB
 escpos.Network = escposNetwork;
 
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default async function printTicket(event, data) {
   const logoPath = path.resolve(__dirname, '../../static/img/chibi_logo-print.png');
