@@ -12,7 +12,6 @@
   function changeIP() {
     if(!ipReady) {
       ipReady = true
-      return
     } else {
       printerConfig.ip = printerIP
       ipReady = false

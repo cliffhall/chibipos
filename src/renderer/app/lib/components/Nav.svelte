@@ -1,9 +1,6 @@
 <script>
-	// Assuming printerConfig store is correctly defined elsewhere
-	// import { printerConfig } from '../stores/shared.svelte.js';
-	// For the purpose of this example, let's mock it if it's not central to the issue
-	let printerConfig = $state({ ip: '192.168.1.100', visible: false });
-
+	// Import the ACTUAL shared store
+	import { printerConfig } from '../stores/shared.svelte.js'; // Adjust path if necessary, this assumes Nav.svelte is in lib/components/
 
 	// This function uses fetch and doesn't seem to be called by any UI element
 	// in the provided code. If it's needed, it should also be converted to use
@@ -95,7 +92,9 @@
 	}
 
 	function togglePrinterConfig() {
+		// Now this modifies the 'visible' property of the SHARED printerConfig store
 		printerConfig.visible = !printerConfig.visible;
+		console.log('[Nav.svelte] Toggled SHARED printerConfig.visible to:', printerConfig.visible); // For debugging
 	}
 </script>
 
