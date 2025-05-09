@@ -57,7 +57,7 @@ const isDev = !app.isPackaged;
 
 const CRYPTO_KEY = process.env.CHIBIPOS_CRYPTO_KEY || 'your-default-super-secret-key-for-dev';
 
-if (CRYPTO_KEY === 'your-default-super-secret-key-for-dev' && app.isPackaged) { // Corrected: warn if default key is used AND it's packaged (production)
+if (CRYPTO_KEY === 'your-default-super-secret-key-for-dev' && app.isPackaged) {
   console.warn('[Main Process] WARNING: Using default CRYPTO_KEY in production. This is insecure!');
 }
 
@@ -90,15 +90,13 @@ if (started) {
 
 let mainWindow;
 let sequelizeInstance;
-let dbModels = {};
+let dbModels = {}; // Models will be stored here
 
 async function initializeDatabase() {
   try {
-    // Pass the resolved Sequelize constructor from main.js to the initializer function
     const { sequelize, testConnection, dbPath } = initializeSequelize(app, ResolvedSequelizeConstructor);
     sequelizeInstance = sequelize;
 
-    // Database copying logic for production
     if (app.isPackaged) {
       const packagedDbPath = path.resolve(process.resourcesPath, 'app', 'database.sqlite');
       if (!fs.existsSync(dbPath) && fs.existsSync(packagedDbPath)) {
@@ -117,7 +115,6 @@ async function initializeDatabase() {
 
     await testConnection();
 
-    // Define models (ensure sequelizeInstance is valid)
     if (!sequelizeInstance || typeof sequelizeInstance.sync !== 'function') {
       throw new Error("Sequelize instance is not valid after initialization.");
     }
@@ -128,7 +125,7 @@ async function initializeDatabase() {
     dbModels.TicketDetails = defineTicketDetails(sequelizeInstance);
     dbModels.DailySalesDetails = defineDailySalesDetails(sequelizeInstance);
 
-    setupAssociations(sequelizeInstance);
+    setupAssociations(sequelizeInstance); // This function should use the passed sequelizeInstance to get models
 
     await sequelizeInstance.sync({ alter: false });
     console.log('[Main Process] Database schema synchronized.');
@@ -137,20 +134,16 @@ async function initializeDatabase() {
   } catch (error) {
     console.error('[Main Process] Error during database initialization process:', error);
     dialog.showErrorBox("Database Error", `Could not initialize the application database. ${error.message}`);
-    // The 'app.isQuitting()' issue originates here.
-    // If 'app' is not the true Electron app object, this will fail.
-    // This points to a bundler issue with the 'electron' module.
     try {
       if (app && typeof app.isQuitting === 'function' && !app.isQuitting()) {
         if (typeof app.quit === 'function') app.quit();
       } else if (app && typeof app.isQuitting !== 'function') {
-        // If app.isQuitting is not a function, it's a strong sign 'app' is not the real Electron app.
         console.error("[Main Process] CRITICAL: Electron 'app.isQuitting' is not a function. Bundling issue suspected. Forcing quit.");
-        if (typeof app.quit === 'function') app.quit(); else process.exit(1); // Fallback
+        if (typeof app.quit === 'function') app.quit(); else process.exit(1);
       }
     } catch (e) {
       console.error("[Main Process] Error trying to quit app after DB init failure:", e);
-      process.exit(1); // Force exit if quitting logic itself fails
+      process.exit(1);
     }
     return false;
   }
@@ -213,8 +206,6 @@ async function createWindow() {
 app.whenReady().then(async () => {
   const dbInitialized = await initializeDatabase();
   if (!dbInitialized) {
-    // Quitting logic is now more robustly handled within initializeDatabase's catch block
-    // but ensure app exits if it reaches here and db isn't initialized.
     if (app && typeof app.quit === 'function' && (typeof app.isQuitting !== 'function' || !app.isQuitting())) {
       app.quit();
     } else if (app && typeof app.isQuitting !== 'function') {
@@ -241,21 +232,7 @@ app.on('window-all-closed', () => {
 
 // *****************
 // IPC Handlers for Database
-// IMPORTANT: Replace all instances of 'Op' with 'ResolvedOp'
 // *****************
-ipcMain.handle('get-products', async () => {
-  if (!dbModels.Product) {
-    console.error('[IPC get-products] Product model is not available.');
-    return { error: 'Product model not initialized on server.' };
-  }
-  try {
-    const products = await dbModels.Product.findAll();
-    return JSON.parse(JSON.stringify(products));
-  } catch (error) {
-    console.error('[IPC get-products] Error fetching products:', error);
-    return { error: error.message };
-  }
-});
 
 ipcMain.handle('get-categories', async () => {
   if (!dbModels.CatProduct) {
@@ -263,11 +240,60 @@ ipcMain.handle('get-categories', async () => {
     return { error: 'Category model not initialized on server.' };
   }
   try {
-    const categories = await dbModels.CatProduct.findAll();
-    return JSON.parse(JSON.stringify(categories));
+    console.log('[IPC get-categories] Fetching categories...');
+    const categoriesInstances = await dbModels.CatProduct.findAll({
+      attributes: ['id', 'name'],
+      order: [['name', 'ASC']]
+    });
+    console.log(
+        '[IPC get-categories] Raw categoriesInstances count:',
+        categoriesInstances.length
+    );
+    const plainCategories = categoriesInstances.map((cat) =>
+        cat.get({ plain: true })
+    );
+    console.log(
+        '[IPC get-categories] Plain categories count:',
+        plainCategories.length
+    );
+    return plainCategories;
   } catch (error) {
-    console.error('[IPC get-categories] Error fetching categories:', error);
-    return { error: error.message };
+    console.error('[Main Process] Error fetching categories:', error);
+    return { error: error.message || 'Failed to fetch categories' };
+  }
+});
+
+ipcMain.handle('get-products', async () => {
+  if (!dbModels.Product) {
+    console.error('[IPC get-products] Product model is not available.');
+    return { error: 'Product model not initialized on server.' };
+  }
+  try {
+    console.log('[IPC get-products] Fetching products...');
+    const productInstances = await dbModels.Product.findAll({
+      attributes: [
+        'id',
+        'name',
+        'image',
+        'price',
+        'catproduct_id',
+        'status_active'
+      ],
+      // include: [{ model: dbModels.CatProduct, attributes: ['name'] }], // If you use include
+      order: [['name', 'ASC']]
+    });
+    console.log(
+        '[IPC get-products] Raw productInstances count:',
+        productInstances.length
+    );
+    const plainProducts = productInstances.map((prod) =>
+        prod.get({ plain: true })
+    );
+    console.log('[IPC get-products] Plain products count:', plainProducts.length);
+    return plainProducts;
+  } catch (error) {
+    console.error('[Main Process] Error fetching products:', error);
+    return { error: error.message || 'Failed to fetch products' };
   }
 });
 
@@ -313,7 +339,7 @@ ipcMain.handle('get-daily-sales-by-month', async (event, dateParam) => {
 
     const sales = await dbModels.DailySales.findAll({
       where: {
-        date: { [ResolvedOp.between]: [startDateISO, endDateISO] } // Use ResolvedOp
+        date: { [ResolvedOp.between]: [startDateISO, endDateISO] }
       },
       order: [['date', 'DESC']]
     });
@@ -335,7 +361,7 @@ ipcMain.handle('export-daily-sale-by-id', async (event, id) => {
     const sale = await dbModels.DailySales.findByPk(id, {
       include: [{
         model: dbModels.DailySalesDetails,
-        as: 'details'
+        as: 'details' // Ensure this alias matches your association definition
       }]
     });
 
@@ -363,15 +389,17 @@ ipcMain.handle('get-daily-sale-report-by-id', async (event, id) => {
       attributes: { exclude: ['createdAt', 'updatedAt'] },
       include: [{
         model: dbModels.DailySalesDetails,
-        as: 'details',
+        as: 'details', // Ensure this alias matches your association definition
         attributes: ['quantity', 'net_sales', 'av_price', 'discount_amount'],
         include: [{
           model: dbModels.Product,
-          as: 'productInfo',
+          as: 'productInfo', // Ensure this alias matches your association definition
           attributes: ['name'],
         }],
-        order: [[ { model: dbModels.Product, as: 'productInfo' }, 'name', 'ASC' ]]
+        // Order within include needs careful handling, might need to be top-level or specific to Sequelize version
+        // order: [[ { model: dbModels.Product, as: 'productInfo' }, 'name', 'ASC' ]] // This might need adjustment
       }],
+      order: [[{ model: dbModels.DailySalesDetails, as: 'details' }, { model: dbModels.Product, as: 'productInfo' }, 'name', 'ASC']] // Example of nested ordering
     });
 
     if (saleReport) {
@@ -397,11 +425,11 @@ ipcMain.handle('get-ticket-by-id', async (event, ticketId) => {
       attributes: { exclude: ['createdAt', 'updatedAt'] },
       include: [{
         model: dbModels.TicketDetails,
-        as: 'details',
+        as: 'details', // Ensure this alias matches your association definition
         attributes: ['quantity', 'price'],
         include: [{
           model: dbModels.Product,
-          as: 'productInfo',
+          as: 'productInfo', // Ensure this alias matches your association definition
           attributes: ['name']
         }]
       }]
@@ -435,7 +463,7 @@ ipcMain.handle('cancel-ticket-by-id', async (event, ticketId) => {
 
     if (ticket.canceled) {
       console.log(`[IPC cancel-ticket-by-id] Ticket with ID: ${ticketId} is already canceled.`);
-      return { status: 200, success: true, message: 'Ticket already canceled.' };
+      return { status: 200, success: true, message: 'Ticket already canceled.', ticket: JSON.parse(JSON.stringify(ticket)) };
     }
 
     ticket.canceled = true;
@@ -449,9 +477,9 @@ ipcMain.handle('cancel-ticket-by-id', async (event, ticketId) => {
 });
 
 ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
-  if (!dbModels.Ticket || !dbModels.TicketDetails || !dbModels.Product || !dbModels.DailySales || !dbModels.DailySalesDetails) {
-    console.error('[IPC update-daily-sales-report] One or more required models are not available.');
-    return { status: 500, error: 'Required models not initialized on server.' };
+  if (!dbModels.Ticket || !dbModels.TicketDetails || !dbModels.Product || !dbModels.DailySales || !dbModels.DailySalesDetails || !sequelizeInstance) {
+    console.error('[IPC update-daily-sales-report] One or more required models or sequelizeInstance are not available.');
+    return { status: 500, error: 'Required models or Sequelize instance not initialized on server.' };
   }
 
   const transaction = await sequelizeInstance.transaction();
@@ -461,11 +489,11 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
     const targetDate = new Date(dateString + 'T00:00:00.000Z');
 
     const start = new Date(targetDate);
-    start.setUTCHours(6, 0, 0, 0);
+    start.setUTCHours(6, 0, 0, 0); // Assuming business day starts at 6 AM UTC
 
     const end = new Date(targetDate);
     end.setUTCDate(end.getUTCDate() + 1);
-    end.setUTCHours(5, 59, 59, 999);
+    end.setUTCHours(5, 59, 59, 999); // Ends at 5:59:59.999 AM UTC the next day
 
     const startISO = start.toISOString();
     const endISO = end.toISOString();
@@ -477,7 +505,7 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
         [sequelizeInstance.Sequelize.fn('COUNT', sequelizeInstance.Sequelize.col('id')), 'canceled_count'],
       ],
       where: {
-        date: { [ResolvedOp.between]: [startISO, endISO] }, // Use ResolvedOp
+        date: { [ResolvedOp.between]: [startISO, endISO] },
         canceled: true,
       },
       raw: true,
@@ -491,7 +519,7 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('card')), 'sum_card'],
       ],
       where: {
-        date: { [ResolvedOp.between]: [startISO, endISO] }, // Use ResolvedOp
+        date: { [ResolvedOp.between]: [startISO, endISO] },
         canceled: false,
       },
       raw: true,
@@ -504,32 +532,32 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('quantity')), 'sum_quantity'],
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('extended_price')), 'sum_extended_price'],
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('discount_amount')), 'sum_discount_amount'],
-        [sequelizeInstance.Sequelize.literal('SUM(ticket_details.price * ticket_details.quantity)'), 'sum_total_sale'],
+        [sequelizeInstance.Sequelize.literal('SUM(price * quantity)'), 'sum_total_sale_gross'], // Gross sale before item discount
       ],
       include: [
         {
           model: dbModels.Ticket,
-          as: 'ticketHeader',
+          as: 'ticketHeader', // Ensure this alias matches your association definition
           attributes: [],
           where: {
-            date: { [ResolvedOp.between]: [startISO, endISO] }, // Use ResolvedOp
+            date: { [ResolvedOp.between]: [startISO, endISO] },
             canceled: false,
           }
         },
         {
           model: dbModels.Product,
-          as: 'productInfo',
+          as: 'productInfo', // Ensure this alias matches your association definition
           attributes: ['id', 'name']
         }
       ],
-      group: ['ticket_details.product_id', 'productInfo.id', 'productInfo.name'],
+      group: ['ticket_details.product_id', 'productInfo.id', 'productInfo.name'], // Ensure all non-aggregated selected columns from productInfo are in group
       raw: true,
       transaction
     });
 
     const netSales = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_extended_price || 0), 0);
-    const totalSales = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_total_sale || 0), 0);
-    const discountAmount = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_discount_amount || 0), 0);
+    const totalSalesGross = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_total_sale_gross || 0), 0);
+    const discountAmountItems = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_discount_amount || 0), 0);
 
     const totalCash = parseFloat(validTicketsData?.sum_cash || 0);
     const totalCard = parseFloat(validTicketsData?.sum_card || 0);
@@ -542,16 +570,20 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
 
     const reportDateForDB = new Date(dateString + 'T00:00:00').toISOString().split('T')[0];
 
+    // Delete existing report for this date before creating a new one
+    await dbModels.DailySales.destroy({ where: { date: reportDateForDB }, transaction });
+    // Note: DailySalesDetails should cascade delete if set up correctly, or delete them manually here.
+
     const dailySale = await dbModels.DailySales.create({
       date: reportDateForDB,
       net_sales: netSales,
-      total_sales: totalSales,
+      total_sales: totalSalesGross, // Using gross total sales
       cash: totalCash,
       card: totalCard,
       ticket_count: ticketCount,
       canceled_count: canceledCount,
       average_ticket: ticketCount > 0 ? Math.round(netSales / ticketCount) : 0,
-      discount_amount: discountAmount,
+      discount_amount: discountAmountItems, // Sum of discounts from line items
     }, { transaction });
 
     const saleDetails = lineItems.map(item => ({
@@ -574,17 +606,19 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
 
   } catch (error) {
     console.error('[IPC update-daily-sales-report] Error processing sales report:', error);
-    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') { // Check transaction exists
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
       await transaction.rollback();
     }
     return { status: 500, error: error.message };
   }
 });
 
+// This handler seems redundant if 'import-update-menu' is the primary one.
+// If kept, it needs the same dbModels.ModelName fixes.
 ipcMain.handle('update-menu-from-import', async (event, menuData) => {
-  if (!dbModels.CatProduct || !dbModels.Product) {
-    console.error('[IPC update-menu-from-import] CatProduct or Product model is not available.');
-    return { status: 500, error: 'Required models not initialized on server.' };
+  if (!dbModels.CatProduct || !dbModels.Product || !sequelizeInstance) {
+    console.error('[IPC update-menu-from-import] CatProduct, Product model, or Sequelize instance is not available.');
+    return { status: 500, error: 'Required models or Sequelize instance not initialized on server.' };
   }
   if (!menuData || !Array.isArray(menuData.categories)) {
     return { status: 400, error: 'Invalid menu data provided.' };
@@ -593,8 +627,10 @@ ipcMain.handle('update-menu-from-import', async (event, menuData) => {
   const transaction = await sequelizeInstance.transaction();
   try {
     console.log('[IPC update-menu-from-import] Starting menu update...');
-    await dbModels.Product.destroy({ where: {}, transaction, truncate: true });
-    await dbModels.CatProduct.destroy({ where: {}, transaction, truncate: true });
+    // Consider if truncate is desired or if a more graceful update is needed.
+    // For truncate to work with foreign keys, deferrable constraints might be needed or specific order.
+    await dbModels.Product.destroy({ where: {}, transaction }); // truncate: true can have issues with FKs
+    await dbModels.CatProduct.destroy({ where: {}, transaction });
     console.log('[IPC update-menu-from-import] Cleared existing products and categories.');
 
     for (const categoryData of menuData.categories) {
@@ -627,7 +663,7 @@ ipcMain.handle('update-menu-from-import', async (event, menuData) => {
 
   } catch (error) {
     console.error('[IPC update-menu-from-import] Error updating menu:', error);
-    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') { // Check transaction exists
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
       await transaction.rollback();
     }
     return { status: 500, error: error.message };
@@ -635,9 +671,9 @@ ipcMain.handle('update-menu-from-import', async (event, menuData) => {
 });
 
 ipcMain.handle('import-update-menu', async (event, encryptedBase64Menu) => {
-  if (!dbModels.CatProduct || !dbModels.Product) {
-    console.error('[IPC import-update-menu] CatProduct or Product model is not available.');
-    return { status: 500, error: 'Required models not initialized on server.' };
+  if (!dbModels.CatProduct || !dbModels.Product || !sequelizeInstance) {
+    console.error('[IPC import-update-menu] CatProduct, Product model, or Sequelize instance is not available.');
+    return { status: 500, error: 'Required models or Sequelize instance not initialized on server.' };
   }
 
   if (!encryptedBase64Menu) {
@@ -651,8 +687,8 @@ ipcMain.handle('import-update-menu', async (event, encryptedBase64Menu) => {
     const decryptedMenu = decryptImportedMenu(encryptedBase64Menu);
 
     if (!decryptedMenu || !Array.isArray(decryptedMenu.cats) || !Array.isArray(decryptedMenu.products)) {
-      if (transaction) await transaction.rollback(); // Rollback if transaction was started
-      return { status: 400, error: 'Decrypted menu data is not in the expected format.' };
+      if (transaction) await transaction.rollback();
+      return { status: 400, error: 'Decrypted menu data is not in the expected format (expected .cats and .products arrays).' };
     }
 
     const { cats, products } = decryptedMenu;
@@ -663,11 +699,11 @@ ipcMain.handle('import-update-menu', async (event, encryptedBase64Menu) => {
       if (cats.length > 0) {
         await dbModels.CatProduct.bulkCreate(
             cats.map(cat => ({
-              id: cat.id,
-              name: cat.nombre
+              id: cat.id, // Assuming ID is provided for updates
+              name: cat.nombre || cat.name // Handle potential naming difference
             })),
             {
-              updateOnDuplicate: ['name'],
+              updateOnDuplicate: ['name'], // Fields to update if ID conflicts
               transaction
             }
         );
@@ -677,15 +713,15 @@ ipcMain.handle('import-update-menu', async (event, encryptedBase64Menu) => {
       if (products.length > 0) {
         await dbModels.Product.bulkCreate(
             products.map(product => ({
-              id: product.id,
-              name: product.nombre,
+              id: product.id, // Assuming ID is provided for updates
+              name: product.nombre || product.name, // Handle potential naming difference
               image: product.image,
-              price: parseFloat(product.precio) || 0,
-              catproduct_id: product.catproducto_id,
+              price: parseFloat(product.precio || product.price || 0), // Handle potential naming difference
+              catproduct_id: product.catproducto_id || product.catproduct_id, // Handle potential naming difference
               status_active: product.status_active !== undefined ? product.status_active : true
             })),
             {
-              updateOnDuplicate: ['name', 'image', 'price', 'catproduct_id', 'status_active'],
+              updateOnDuplicate: ['name', 'image', 'price', 'catproduct_id', 'status_active'], // Fields to update
               transaction
             }
         );
@@ -709,9 +745,9 @@ ipcMain.handle('import-update-menu', async (event, encryptedBase64Menu) => {
 });
 
 ipcMain.handle('delete-all-menu-data', async () => {
-  if (!dbModels.CatProduct || !dbModels.Product) {
-    console.error('[IPC delete-all-menu-data] CatProduct or Product model is not available.');
-    return { status: 500, error: 'Required models not initialized on server.' };
+  if (!dbModels.CatProduct || !dbModels.Product || !sequelizeInstance) {
+    console.error('[IPC delete-all-menu-data] CatProduct, Product model, or Sequelize instance is not available.');
+    return { status: 500, error: 'Required models or Sequelize instance not initialized on server.' };
   }
 
   let transaction;
@@ -719,6 +755,7 @@ ipcMain.handle('delete-all-menu-data', async () => {
     transaction = await sequelizeInstance.transaction();
     console.log('[IPC delete-all-menu-data] Attempting to delete all products and categories...');
 
+    // It's safer to delete products first due to foreign key constraints from Product to CatProduct
     await dbModels.Product.destroy({ where: {}, transaction });
     console.log('[IPC delete-all-menu-data] All products deleted.');
 
@@ -738,8 +775,6 @@ ipcMain.handle('delete-all-menu-data', async () => {
   }
 });
 
-// src/main.js
-// ... other ipcMain.handle calls ...
 
 ipcMain.handle('get-ticket-by-date', async (event, dateParam) => {
   if (!dbModels.Ticket) {
@@ -747,8 +782,7 @@ ipcMain.handle('get-ticket-by-date', async (event, dateParam) => {
     return { status: 500, error: 'Ticket model not initialized on server.' };
   }
   try {
-    // Assuming dateParam is in 'YYYY-MM-DD' format from the client
-    const targetDate = new Date(dateParam + 'T00:00:00.000Z');
+    const targetDate = new Date(dateParam + 'T00:00:00.000Z'); // Ensure UTC context for the start of the day
 
     const startOfDay = new Date(targetDate);
     startOfDay.setUTCHours(0, 0, 0, 0);
@@ -765,12 +799,12 @@ ipcMain.handle('get-ticket-by-date', async (event, dateParam) => {
           [ResolvedOp.lte]: endOfDay,
         },
       },
-      order: [['date', 'DESC']], // Optional: order by date
+      order: [['date', 'DESC']],
     });
-    return JSON.parse(JSON.stringify(tickets)); // Return the array of tickets
+    return JSON.parse(JSON.stringify(tickets));
   } catch (error) {
     console.error('[IPC get-ticket-by-date] Error fetching tickets by date:', error);
-    return { status: 500, error: error.message }; // Or return an empty array or an error object
+    return { status: 500, error: error.message };
   }
 });
 
@@ -813,19 +847,19 @@ ipcMain.on('open-menu-dialog', (event) => {
 // *****************
 ipcMain.handle('print-ticket', async (e, data) => {
   console.log('[Main Process] Handling print-ticket IPC call.');
-  const result = await printTicket(e, data);
+  const result = await printTicket(e, data); // Assuming printTicket handles its own model access if needed
   return result;
 });
 
 ipcMain.handle('print-kitchen', async (e, data) => {
   console.log('[Main Process] Handling print-kitchen IPC call.');
-  const result = await printKitchen(e, data);
+  const result = await printKitchen(e, data); // Assuming printKitchen handles its own model access if needed
   return result;
 });
 
 ipcMain.handle('print-sale', async (e, data) => {
   console.log('[Main Process] Handling print-sale IPC call.');
-  const result = await printSale(e, data);
+  const result = await printSale(e, data); // Assuming printSale handles its own model access if needed
   return result;
 });
 
@@ -888,7 +922,7 @@ if (process.platform === 'darwin') {
         { type: 'separator' }
     );
   } else if (appMenu) {
-    appMenu.submenu = [ // Fallback if submenu was somehow undefined
+    appMenu.submenu = [
       { role: 'about' },
       { type: 'separator' },
       { role: 'services' },

@@ -1,22 +1,41 @@
 // src/renderer/app/lib/db/config.js
-import path from 'node:path'; // Or const path = require('node:path');
-import fs from 'node:fs';   // Or const fs = require('node:fs');
+import path from 'node:path';
+import fs from 'node:fs';
 
-// Removed: const Sequelize = require('sequelize'); (or import) - it will be passed in
+export function initializeSequelize(app, SequelizeConstructor) {
+  let dbPath;
+  let dbDir; // To store the directory path for potential creation
 
-export function initializeSequelize(app, SequelizeConstructor) { // Accept SequelizeConstructor
-  const userDataPath = app.getPath('userData');
-  // It's good practice to put app-specific data in a subdirectory
-  const appDataDir = path.join(userDataPath, 'chibipos');
+  if (app.isPackaged) {
+    // Production: Use the userData directory
+    const userDataPath = app.getPath('userData');
+    dbDir = path.join(userDataPath, 'chibipos'); // Your app-specific subdirectory
 
-  // Ensure the app-specific directory exists
-  if (!fs.existsSync(appDataDir)) {
-    fs.mkdirSync(appDataDir, { recursive: true });
-    console.log(`[db/config.js] Created directory: ${appDataDir}`);
+    // Ensure the app-specific directory exists in userData
+    if (!fs.existsSync(dbDir)) {
+      try {
+        fs.mkdirSync(dbDir, { recursive: true });
+        console.log(`[db/config.js] Created production data directory: ${dbDir}`);
+      } catch (error) {
+        console.error(`[db/config.js] Failed to create production data directory ${dbDir}:`, error);
+        // Depending on how critical this is, you might want to throw or handle
+        throw new Error(`Failed to create production data directory: ${error.message}`);
+      }
+    }
+    dbPath = path.join(dbDir, 'database.sqlite');
+    console.log(`[db/config.js] Using PRODUCTION database at: ${dbPath}`);
+  } else {
+    // Development: Use a path in your project's root directory
+    // app.getAppPath() in dev usually points to your project root
+    dbDir = app.getAppPath(); // This is your project root
+    dbPath = path.join(dbDir, 'database.sqlite');
+    // No need to create dbDir here as it's the project root, which should exist.
+    // If you wanted a subfolder in dev, e.g., project_root/dev_db/, you'd add:
+    // dbDir = path.join(app.getAppPath(), 'dev_db');
+    // if (!fs.existsSync(dbDir)) { fs.mkdirSync(dbDir, { recursive: true }); }
+    // dbPath = path.join(dbDir, 'database.sqlite');
+    console.log(`[db/config.js] Using DEVELOPMENT database at: ${dbPath}`);
   }
-
-  const dbPath = path.join(appDataDir, 'database.sqlite');
-  console.log(`[db/config.js] Using database at: ${dbPath}`);
 
   const sequelize = new SequelizeConstructor({
     dialect: 'sqlite',

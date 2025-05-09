@@ -1,5 +1,112 @@
 Directory structure:
 └── cliffhall-chibipos/
+    ├── cliffhall-chibipos.txt
+    ├── database.sqlite
+    ├── forge.config.cjs
+    ├── gsap-bonus.tgz
+    ├── index.html
+    ├── package.json
+    ├── svelte.config.js
+    ├── vite.main.config.mjs
+    ├── vite.preload.config.mjs
+    ├── vite.renderer.config.mjs
+    ├── src/
+    │   ├── main.js
+    │   ├── preload.js
+    │   ├── printing/
+    │   │   ├── printKitchen.js
+    │   │   ├── printSale.js
+    │   │   └── printTicket.js
+    │   └── renderer/
+    │       └── app/
+    │           ├── app.html
+    │           ├── index.css
+    │           ├── package.json
+    │           ├── lib/
+    │           │   ├── index.js
+    │           │   ├── components/
+    │           │   │   ├── ActionButton.svelte
+    │           │   │   ├── Calendar.svelte
+    │           │   │   ├── Cash.svelte
+    │           │   │   ├── CatMenu.svelte
+    │           │   │   ├── Display.svelte
+    │           │   │   ├── Nav.svelte
+    │           │   │   ├── Order.svelte
+    │           │   │   ├── OrderItem.svelte
+    │           │   │   ├── PrinterConfig.svelte
+    │           │   │   ├── Product.svelte
+    │           │   │   └── TicketItem.svelte
+    │           │   ├── db/
+    │           │   │   ├── associations.js
+    │           │   │   ├── config.js
+    │           │   │   └── models/
+    │           │   │       ├── catProduct.js
+    │           │   │       ├── daily_sales.js
+    │           │   │       ├── daily_salesDetails.js
+    │           │   │       ├── product.js
+    │           │   │       ├── ticket.js
+    │           │   │       └── ticketDetails.js
+    │           │   ├── img/
+    │           │   │   └── icons/
+    │           │   ├── scripts/
+    │           │   │   └── sale.js
+    │           │   └── styles/
+    │           │       ├── base.scss
+    │           │       ├── reset.scss
+    │           │       └── variables.scss
+    │           └── routes/
+    │               ├── +layout.server.js
+    │               ├── +layout.svelte
+    │               ├── +page.server.js
+    │               ├── +page.svelte
+    │               ├── reportes/
+    │               │   ├── +page.server.js
+    │               │   └── +page.svelte
+    │               └── tickets/
+    │                   ├── +page.server.js
+    │                   └── +page.svelte
+    └── static/
+        └── img/
+            └── products/
+                ├── archi.avif
+                ├── brocheta.avif
+                ├── california.avif
+                ├── camara.avif
+                ├── chirashi.avif
+                ├── chorero.avif
+                ├── dragon.avif
+                ├── filadelfia.avif
+                ├── fujikaze.avif
+                ├── furioso.avif
+                ├── godzilla.avif
+                ├── gohan_especial.avif
+                ├── gohan_teriyaki.avif
+                ├── goro.avif
+                ├── ichiro.avif
+                ├── judoka.avif
+                ├── kokoro.avif
+                ├── maki-atun.avif
+                ├── maki-marlin.avif
+                ├── maki-salmon.avif
+                ├── maki.avif
+                ├── manchego.avif
+                ├── marlin.avif
+                ├── mirrey.avif
+                ├── mostro.avif
+                ├── panita.avif
+                ├── poke-atun.avif
+                ├── poke-camaron.avif
+                ├── poke-marlin.avif
+                ├── poke-salmon.avif
+                ├── pops.avif
+                ├── terminator.avif
+                └── vegan.avif
+
+================================================
+FILE: cliffhall-chibipos.txt
+================================================
+Directory structure:
+└── cliffhall-chibipos/
     ├── database.sqlite
     ├── forge.config.cjs
     ├── gsap-bonus.tgz
@@ -4031,6 +4138,5562 @@ FILE: src/renderer/app/lib/db/models/ticketDetails.js
 ================================================
 // /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/ticketDetails.js
 const DataTypes = require( 'sequelize');
+
+export function defineTicketDetails(sequelize) {
+  const TicketDetails = sequelize.define('ticket_details', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+    },
+    ticket_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'ticket', // Model name string for Ticket
+        key: 'id',
+      }
+    },
+    product_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'product', // Model name string for Product
+        key: 'id',
+      }
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    price: { // This is likely the unit price at the time of sale
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    extended_price: { // This would be quantity * price
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+      allowNull: false,
+    },
+  }, {
+    tableName: 'ticket_details',
+    // timestamps: true, // Usually not needed for detail/join tables unless specific tracking is required
+  });
+  return TicketDetails;
+}
+
+
+
+
+================================================
+FILE: src/renderer/app/lib/scripts/sale.js
+================================================
+import { cart, printerConfig } from '../stores/shared.svelte.js'
+
+export async function commitSale(cart, total, cash, card, discountRate, change, actualCash) {
+
+  if (!Array.isArray(cart)) {
+    throw new Error('Invalid cart: must be an array');
+  }
+  if (isNaN(total) || isNaN(cash) || isNaN(card) || isNaN(discountRate)) {
+    throw new Error('All monetary values must be valid numbers');
+  }
+
+  const saleData = {
+    cash: parseFloat(cash),
+    card: parseFloat(card),
+    cashReceived: parseFloat(actualCash),
+    change: parseFloat(change),
+    discountRate: parseFloat(discountRate),
+    frontendTotal: parseFloat(total),
+    products: cart.map((item) => ({
+      product_id: item.id,
+      quantity: item.quantity,
+    }))
+  }
+
+  try {
+    const response = await fetch('/api/ticket', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(saleData)
+    })
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const result = await response.json()
+    const ticket = result.ticket
+    const details = result.ticketDetails
+    const printData = { ticket, details: result.ticketDetails, printerIP: printerConfig.ip }
+    await window.api.printTicket(printData)
+    await window.api.printKitchen(printData)
+
+    return result
+
+  } catch (error) {
+    console.error('Error: sale commit', error)
+    throw error
+  }
+}
+
+
+
+
+
+================================================
+FILE: src/renderer/app/lib/styles/base.scss
+================================================
+body {
+	font-size: 14px;
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	font-family: var(--font-text);
+}
+
+ul {
+	list-style: none;
+}
+
+a {
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+a,
+p,
+img {
+	user-select: none;
+}
+
+button {
+	display: block;
+	background-color: transparent;
+	outline: none;
+	border: none;
+	color: var(--color-text);
+	font-size: 14px;
+	cursor: pointer;
+}
+
+.circle {
+	border-radius: 50%;
+	background-color: var(--color-accent);
+	height: var(--circle-size);
+	width: var(--circle-size);
+	padding: 0.5em;
+
+	img {
+		height: 100%;
+		width: 100%;
+		object-fit: contain;
+	}
+}
+
+table {
+	border-collapse: collapse;
+	color: var(--color-text);
+	font-size: 1em;
+	width: 100%;
+	height: fit-content;
+
+	caption {
+		color: var(--color-accent);
+		font-family: var(--font-titles);
+		font-size: 1.5em;
+		text-align: left;
+		margin-bottom: 0.5em;
+	}
+
+	th,
+	td {
+		padding: 0.5rem 1rem;
+	}
+
+	thead {
+		background-color: var(--color-thead);
+
+		th {
+			font-weight: 300;
+			text-align: left;
+		}
+	}
+
+	tbody {
+		tr {
+			background-color: var(--color-panel);
+
+			&:nth-of-type(even) {
+				background-color: var(--color-tablerow-alt);
+			}
+		}
+
+		td {
+			font-family: var(--font-numbers);
+
+			&.number {
+				text-align: right;
+			}
+		}
+	}
+
+	td:has(a) {
+		padding: 0;
+	}
+
+	a {
+		display: block;
+		padding: 0.5rem 1em;
+		height: 100%;
+		width: 100%;
+	}
+}
+
+.table-wrapper {
+	position: relative;
+}
+
+.table-rounder {
+	border-radius: var(--panel-border);
+	height: fit-content;
+	overflow: hidden;
+}
+
+.table {
+	display: block;
+	background: linear-gradient(var(--color-panel1), var(--color-panel2));
+	border-radius: var(--panel-border);
+	overflow: hidden;
+	height: 100%;
+
+	&--header {
+		background-color: var(--color-thead);
+		color: var(--color-text-secondary);
+		display: flex;
+		padding: 0.5em 1em;
+		gap: 2em;
+		font-size: 0.8rem;
+	}
+
+	&--body {
+		overflow-y: scroll;
+		max-height: 90%;
+		&::-webkit-scrollbar {
+			width: 0.5em;
+		}
+
+		&::-webkit-scrollbar-track {
+			background: linear-gradient(var(--color-panel1), var(--color-panel2));
+			width: 1em;
+			border-radius: 50px;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			background-color: var(--color-thead);
+			width: 0.5em;
+			border-radius: 50px;
+		}
+	}
+
+	&--item {
+		transition: 0.3s ease;
+
+		button {
+			display: flex;
+			align-items: center;
+			gap: 1em;
+			padding: 0.5em 1em;
+			width: 100%;
+
+			&:hover {
+				background-color: var(--color-hover);
+			}
+		}
+
+		&:nth-of-type(even) {
+			background-color: var(--color-tablerow-alt);
+		}
+
+		&.selected {
+			background-color: var(--color-bg);
+			button:hover {
+				background-color: var(--color-bg);
+			}
+		}
+
+		p {
+			font-family: var(--font-numbers);
+
+			&.number {
+				width: 3em;
+				text-align: right;
+			}
+		}
+
+		.date {
+			width: 8em;
+			text-align: left;
+		}
+
+		.payment {
+			width: 6em;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			height: 100%;
+			margin: 0 1em;
+
+			.icon {
+				height: 1.5em;
+
+				&.card {
+					padding: 1px 0;
+				}
+
+				&.cash {
+					margin-left: auto;
+				}
+
+				img {
+					height: 100%;
+					object-fit: contain;
+				}
+			}
+		}
+
+		.cancel {
+			--size: 0.5em;
+			height: var(--size);
+			width: var(--size);
+			border-radius: 50%;
+			background-color: green;
+
+			&.cancelado {
+				background-color: red;
+			}
+		}
+	}
+}
+
+.title {
+	font-family: var(--font-titles);
+	font-size: 1.25em;
+	color: var(--color-accent);
+	margin-bottom: 0.5em;
+	letter-spacing: 1px;
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/styles/reset.scss
+================================================
+html {
+	box-sizing: border-box;
+	-moz-text-size-adjust: none;
+	-webkit-text-size-adjust: none;
+	text-size-adjust: none;
+}
+
+*,
+*::before,
+*::after {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/styles/variables.scss
+================================================
+:root {
+	// Fonts
+	--font-text: 'Roboto', sans-serif;
+	--font-numbers: 'Roboto Mono', sans-serif;
+	--font-titles: 'Bakbak One', sans-serif;
+	// COLORS
+	--color-bg: #191d22;
+	--color-hover: #22282f;
+	--color-accent: #fbc02a;
+	--color-darker: #101316;
+	--color-text: #ebebeb;
+	--color-light: #d9d9d9;
+	--color-panel1: #3b4046;
+	--color-panel2: #34383e;
+	--color-panel: #3a3f45;
+	--color-thead: #2a292d;
+	--color-tablerow-alt: #32363c;
+	--color-footer: #d9d9d9;
+	--color-text-secondary: #aeaeae;
+	--color-ready: rgb(149, 255, 96);
+	// MISC
+	--panel-border: 14px;
+	--panel-padding: 1.5em;
+	--ticketCol-width: 400px;
+	--nav-height: 4em;
+	--layout-gap: 2em;
+	// Buttons
+	--circle-size: 2em;
+	--button-height: 3.5rem;
+	--button-height: 3rem;
+}
+
+
+
+================================================
+FILE: src/renderer/app/routes/+layout.server.js
+================================================
+// *************************************
+// LAYOUT
+// *************************************
+
+// src/renderer/app/routes/+layout.server.js
+export async function load() {
+  console.log('(+layout.server.js) load function called', new Date().toISOString());
+  // Provide initial empty structures for data that will be fetched client-side
+  // This ensures they are defined during SSR.
+  return {
+    initialCats: [],
+    initialProducts: []
+  };
+}
+
+
+
+================================================
+FILE: src/renderer/app/routes/+layout.svelte
+================================================
+<script>
+	// Global style imports
+	import '$lib/styles/variables.scss';
+	import '$lib/styles/reset.scss';
+	import '$lib/styles/base.scss';
+
+	// Component and store imports
+	import Nav from '$lib/components/Nav.svelte';
+	import PrinterConfig from '$lib/components/PrinterConfig.svelte';
+	import { printerConfig } from '../lib/stores/shared.svelte.js';
+	import { onMount } from 'svelte';
+	// import { invalidateAll } from '$app/navigation';
+
+	let { children } = $props();
+
+	function animateMenuChange() {
+		console.log('animateMenuChange: Menu has been updated.');
+		// Consider actions like invalidateAll();
+	}
+
+	onMount(() => {
+		if (window.api && typeof window.api.onMenuOpened === 'function') {
+
+			const removeListener = window.api.onMenuOpened(async (content) => {
+				try {
+					const stringContent = typeof content === 'string' ? content : JSON.stringify(content);
+					const base64Content = btoa(stringContent);
+
+					if (window.api && typeof window.api.importUpdateMenu === 'function') {
+						const response = await window.api.importUpdateMenu(base64Content);
+						if (response && response.status === 200 && response.success) {
+							console.log('Menu update via IPC successful:', response.message);
+							animateMenuChange();
+						} else {
+							console.error('Menu update via IPC failed:', response?.error || response?.message || 'Unknown error');
+						}
+					} else {
+						console.warn('window.api.importUpdateMenu is not available. Check preload script.');
+					}
+				} catch (error) {
+					console.error('Error processing menu update in onMenuOpened:', error);
+				}
+			});
+
+			// Cleanup the listener when the component is destroyed
+			return () => {
+				if (typeof removeListener === 'function') {
+					removeListener(); // This should now always be true if preload.js is updated
+				} else {
+					// This else block becomes less likely to be hit if preload is correct,
+					// but can be kept as an extreme fallback or removed if you're confident.
+					console.warn('[+layout.svelte onMount cleanup] removeListener was not a function. This indicates an issue with preload.js.');
+					if (window.ipcRenderer) {
+						window.ipcRenderer.removeAllListeners('menu-file-opened');
+					}
+				}
+			};
+		} else {
+			console.warn('[+layout.svelte onMount] window.api or window.api.onMenuOpened is not available. Check preload script.');
+		}
+		// No explicit return undefined needed here if the if-condition doesn't execute,
+		// onMount implicitly returns undefined if no cleanup function is returned.
+	});
+</script>
+
+<svelte:head>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link
+			href="https://fonts.googleapis.com/css2?family=Bakbak+One&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+			rel="stylesheet"
+	/>
+</svelte:head>
+
+<main>
+	{@render children()}
+</main>
+
+{#if printerConfig.visible}
+	<PrinterConfig />
+{/if}
+
+<Nav />
+
+<style lang="scss">
+	main {
+		height: calc(100vh - var(--nav-height));
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/routes/+page.server.js
+================================================
+// export async function load({ fetch }) {
+//   const catrequest = await fetch('/api/catProducto')
+//   const cats = await catrequest.json()
+//   return { cats };
+// }
+
+
+================================================
+FILE: src/renderer/app/routes/+page.svelte
+================================================
+<script>
+	import CatMenu from '$lib/components/CatMenu.svelte';
+	import Display from '$lib/components/Display.svelte';
+	import Order from '$lib/components/Order.svelte';
+	import { selectedCat } from '../lib/stores/shared.svelte.js';
+	import { onMount } from 'svelte';
+
+	// data prop will be populated by the load function in +layout.server.js (or +page.server.js)
+	let { data } = $props(); // Use $props() for Svelte 5 runes
+
+	// Initialize state with data from the load function for SSR,
+	// or fallback to empty arrays if data is not structured as expected.
+	let cats = $state(data.initialCats || []);
+	let products = $state(data.initialProducts || []); // This ensures 'products' is an array during SSR
+	let isLoading = $state(true);
+
+	onMount(async () => {
+		isLoading = true;
+		try {
+			if (window.api) {
+				const [categoriesResult, productsResult] = await Promise.all([
+					window.api.getCategories(),
+					window.api.getProducts()
+				]);
+
+				// Check for errors from IPC calls
+				if (categoriesResult && !categoriesResult.error) {
+					cats = categoriesResult;
+				} else {
+					console.error("Error fetching categories:", categoriesResult?.error);
+				}
+
+				if (productsResult && !productsResult.error) {
+					products = productsResult;
+				} else {
+					console.error("Error fetching products:", productsResult?.error);
+				}
+
+			} else {
+				console.warn('[+page.svelte] window.api is not available for fetching data.');
+			}
+		} catch (err) {
+			console.error("[+page.svelte] Failed to load page data via IPC:", err);
+		} finally {
+			isLoading = false;
+		}
+	});
+
+	// Line 10 (or around there) was likely this or similar:
+	// This should now work safely during SSR because 'products' will be an empty array.
+	let filteredProducts = $derived(
+			products.filter((product) => product.catproduct_id === selectedCat.cat)
+	);
+</script>
+
+{#if isLoading && !cats.length && !products.length}
+	<p>Loading menu...</p>
+{:else}
+	<div class="grid">
+		<CatMenu {cats} />
+		<Display {filteredProducts} />
+		<Order />
+	</div>
+{/if}
+
+<style lang="scss">
+	.grid {
+		display: grid;
+		height: 100%;
+		width: 100%;
+		grid-template-columns: 160px 1fr var(--ticketCol-width);
+		grid-template-rows: 1fr;
+		overflow: hidden;
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/routes/reportes/+page.server.js
+================================================
+// *********************
+// REPORTES: LOAD 
+// *********************
+import { json } from '@sveltejs/kit'
+
+export async function load({ fetch }) {
+  try {
+    const salesRequest = await fetch(`/api/sale/month?date=${new Date()}`)
+    const dailySales = await salesRequest.json()
+    const sales = dailySales.sales
+    return { sales }
+  } catch (error) {
+    console.error('No sales')
+  }
+}
+
+
+================================================
+FILE: src/renderer/app/routes/reportes/+page.svelte
+================================================
+<script>
+	import { fly, fade } from 'svelte/transition';
+	import ActionButton from '$lib/components/ActionButton.svelte';
+	import downloadIcon from '$lib/img/icons/download.svg';
+	import confirmIcon from '$lib/img/icons/confirm.svg';
+	import printIcon from '$lib/img/icons/print.svg';
+	import { printerConfig } from '../stores/shared.svelte.js'
+
+
+	let { data } = $props();
+	let { sales } = $state(data);
+	let selectedSale = $state({});
+
+	// current Dates
+	let selectedDate = $state(new Date());
+	const today = new Date();
+	const currentMonth = today.getMonth()
+	const currentYear = today.getFullYear()
+	let selectedMonth = $state(today.getMonth());
+	let selectedYear = $state(today.getFullYear());
+	let monthName = $derived(
+		new Date(selectedYear, selectedMonth).toLocaleString('es', { month: 'long' }))
+
+	let printReady = $state(false);
+	let exportReady = $state(false);
+
+
+	async function changeMonths(offset) {
+		const newMonth = selectedMonth + offset
+		if(newMonth > currentMonth && selectedYear === currentYear) return
+
+		selectedMonth += offset;
+			if(selectedMonth < 0)  {
+			selectedMonth = 11;
+			selectedYear--;
+		} else if (selectedMonth > 11) {
+			selectedMonth = 0;
+			selectedYear++;
+		}
+
+		try {
+			const salesRequest = await fetch(`/api/sale/month?date=${new Date(selectedYear, selectedMonth, 1)}`)
+			const dailySales = await salesRequest.json()
+			sales = dailySales.sales
+			console.log('sales: ', sales)
+			return { sales }
+		} catch (error) {
+			console.error('No sales')
+		}
+	}
+
+
+	function saveFile(filename, data) {
+		const blob = new Blob([data], { type: 'application/json' });
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(blob);
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+
+
+	async function showReport(id) {
+		try {
+			const request = await fetch(`/api/sale/${id}`);
+			const sale = await request.json();
+			console.log('show sale: ', sale);
+			selectedSale = sale;
+		} catch (error) {
+			console.error('no sale by id', error);
+		}
+	}
+
+
+	async function exportSale(id) {
+		if(printReady) {
+				exportReady = false;
+				printReady = false
+				return;
+		}
+		if(exportReady) {
+			try {
+				const request = await fetch(`/api/sale/export?id=${id}`);
+				const response = await request.json();
+				const sale = response.encryptedSale;
+				const fileName = `chibi-SUC-${selectedSale.date}.enc.json`;
+				saveFile(fileName, sale);
+			} catch (error) {
+				console.error('error exporting: ', error);
+			}
+		} else {
+			exportReady = true
+		}
+	}
+
+
+	async function printSale() {
+		if(exportReady) {
+				exportReady = false;
+				printReady = false
+				return;
+		}
+		if(printReady) {
+			let printData = {sale: selectedSale, printerIP: printerConfig.ip}
+			try {
+				await window.api.printSale(JSON.parse(JSON.stringify(selectedSale)))
+				printReady = false
+			} catch (error) {
+				console.error('error printing sale: ', error);
+			}
+		} else {
+			printReady = true
+		}
+
+	}
+
+
+</script>
+
+<main class="page">
+	<div class="table-wrapper list">
+
+		<div class="table--month">
+			<p class="title">Reportes</p>
+			<div class="month">
+				<button onclick={() => changeMonths(-1)}>-</button>
+				<div class="text">
+					<p class="title">{monthName}</p>
+					<p class='year'>{selectedYear}</p>
+				</div>
+				<button onclick={() => changeMonths(1)}>+</button>
+			</div>
+		</div>
+
+		<div class="table">
+			<div class="table--header">
+				<p class="date">fecha</p>
+				<p class="number">importe</p>
+				<p class="number">desc.</p>
+				<p class="number short">tickets</p>
+				<p class="number short">canc.</p>
+				<p class="number">tarjeta</p>
+				<p class="number">efectivo</p>
+			</div>
+
+			<ul class="table--body">
+				{#each sales as sale}
+					<li class="table--item">
+						<button onclick={() => showReport(sale.id)}>
+							<p class="date">
+								{new Date(sale.date).toLocaleDateString('en-ES', {
+									day: 'numeric',
+									month: 'short',
+									year: 'numeric',
+									timeZone: 'UTC'
+								})}
+							</p>
+
+							<p class="number">{sale.net_sales}</p>
+							<p class="number">{sale.discount_amount}</p>
+							<p class="number short">{sale.ticket_count}</p>
+							<p class="number short">{sale.canceled_count}</p>
+							<p class="number">{sale.card}</p>
+							<p class="number">{sale.cash}</p>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	</div>
+
+	<div class="table-wrapper details">
+		{#if selectedSale.id}
+			<p class="title" in:fly={{ y: 30, duration: 500 }}>
+				{new Date(selectedSale.date).toLocaleDateString('en-ES', {
+					day: 'numeric',
+					month: 'short',
+					year: 'numeric',
+					timeZone: 'UTC'
+				})}
+			</p>
+			<div class="table" in:fly={{ y: 30, duration: 500 }}>
+				<div class="table--header">
+					<p class="text">producto</p>
+					<p>cantidad</p>
+					<p>importe</p>
+					<p>desc</p>
+					<p>p. prom</p>
+				</div>
+
+				<ul class="table--body">
+					{#if selectedSale.id}
+						{#each selectedSale.daily_sales_details as item}
+							<li class="table--item">
+								<p class="text">{item.product.name}</p>
+								<p class="number short">{item.quantity}</p>
+								<p class="number">{item.net_sales}</p>
+								<p class="number">{item.discount_amount}</p>
+								<p class="number">{item.av_price}</p>
+							</li>
+						{/each}
+					{/if}
+				</ul>
+				<div class="buttonRow">
+					<ActionButton
+						action={printSale}
+						imgSrc={printIcon}
+						imgAlt="imprimir"
+						readyImg={confirmIcon}
+						readyAlt="confirmar"
+						flexBasis="50%"
+						bind:ready={printReady}
+					/>
+					<ActionButton
+						action={() => exportSale(selectedSale.id)}
+						imgSrc={downloadIcon}
+						imgAlt="exportar"
+						readyImg={confirmIcon}
+						readyAlt="confirmar"
+						bind:ready={exportReady}
+						flexBasis="50%"
+					/>
+				</div>
+			</div>
+		{/if}
+	</div>
+</main>
+
+<style lang="scss">
+	.page {
+		height: 100%;
+		display: flex;
+	}
+
+	.month {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 1em;
+
+				button {
+					background-color: var(--color-accent);
+					width: 4em;
+					height: 1.5em;
+					border-radius: 8px;
+					color: var(--color-bg);
+				}
+
+				.text {
+					line-height: 1;
+
+					.title {
+						margin-bottom: 0;
+					}
+
+					.year {
+						font-family: var(--font-titles);
+						text-align: center;
+					}
+				}
+			}
+
+	.table-wrapper {
+		padding: 2em var(--panel-padding);
+		// border: solid yellow thin;
+	}
+
+	.table--month {
+		display: flex;
+		gap: 2em;
+	}
+
+	.table {
+		height: calc(100% - 2em);
+	}
+
+	.list {
+
+		.table--header {
+			gap: 1rem;
+
+			p {
+				text-align: right;
+				&.date {
+					text-align: center;
+					width: 8rem;
+				}
+
+				&.number {
+					width: 3rem;
+					display: inline-block;
+				}
+			}
+		}
+
+		.table--item {
+			button {
+				gap: 1rem;
+			}
+
+			p {
+				&.date {
+					width: 8rem;
+				}
+
+				&.number {
+					width: 3rem;
+				}
+			}
+		}
+	}
+
+	.details {
+		.table--header {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+
+			p.text {
+				width: 12rem;
+				text-align: left;
+			}
+
+			p {
+				text-align: center;
+				width: 3rem;
+				// border: solid yellow thin;
+			}
+		}
+
+		.table--body {
+			height: 470px;
+			overflow-y: scroll;
+
+			&::-webkit-scrollbar {
+			width: 0.5em;
+			}
+
+			&::-webkit-scrollbar-track {
+				background: linear-gradient(var(--color-panel1), var(--color-panel2));
+				width: 1em;
+				border-radius: 50px;
+			}
+
+			&::-webkit-scrollbar-thumb {
+				background-color: var(--color-thead);
+				width: 0.5em;
+				border-radius: 50px;
+			}
+		}
+
+		.table--item {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			padding: 0.5em 1em;
+			align-content: center;
+
+			p {
+				// border: solid white thin;
+				width: 3rem;
+			}
+
+			p.text {
+				width: 12rem;
+				font-family: var(--font-text);
+			}
+		}
+
+		.buttonRow {
+			display: flex;
+			gap: 2em;
+			padding: 0 1em;
+			margin: 1em 0;
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/routes/tickets/+page.server.js
+================================================
+export async function load() {
+  console.log('(tickets/+page.server.js) load function called');
+  return {
+    initialTickets: [] // Provide an empty array for SSR
+  };
+}
+
+
+
+================================================
+FILE: src/renderer/app/routes/tickets/+page.svelte
+================================================
+<script>
+	import Calendar from '$lib/components/Calendar.svelte'; // Use $lib alias
+	import TicketItem from '$lib/components/TicketItem.svelte'; // Use $lib alias
+	import ActionButton from '$lib/components/ActionButton.svelte'; // Use $lib alias
+	import cardIcon from '../../lib/img/icons/card-yellow.svg'; // Relative path for now
+	import cashIcon from '../../lib/img/icons/cash-yellow.svg'; // Relative path for now
+	import { fly, fade, slide } from 'svelte/transition';
+	import { printerConfig } from '../../lib/stores/shared.svelte.js'; // Relative path for now
+	import { onMount } from 'svelte';
+
+	let { data } = $props(); // SvelteKit data prop
+	let tickets = $state(data.initialTickets || []); // Initialize with SSR data
+	let currentTicket = $state({});
+	let ticketItems = $derived(currentTicket.ticket_details || []); // Ensure ticket_details exists
+	let dateObject = $derived(currentTicket.date ? new Date(currentTicket.date) : new Date()); // Handle undefined date
+	let cancelReady = $state(false);
+	let printReady = $state(false);
+
+	let date = $derived(
+			dateObject.toLocaleString(undefined, {
+				timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+				year: 'numeric',
+				month: 'long',
+				day: '2-digit'
+			})
+	);
+
+	// Function to fetch tickets for a given date using IPC
+	async function fetchTicketsForDate(dateToFetch) {
+		const dateString = `${dateToFetch.getFullYear()}-${('0' + (dateToFetch.getMonth() + 1)).slice(-2)}-${('0' + dateToFetch.getDate()).slice(-2)}`;
+		if (window.api && typeof window.api.getTicketsByDate === 'function') {
+			try {
+				const fetchedTickets = await window.api.getTicketsByDate(dateString);
+				if (fetchedTickets && !fetchedTickets.error) {
+					tickets = fetchedTickets;
+				} else {
+					console.error("Error fetching tickets via IPC:", fetchedTickets?.error || "Unknown error");
+					tickets = []; // Reset or handle error
+				}
+			} catch (ipcError) {
+				console.error("IPC call to getTicketsByDate failed:", ipcError);
+				tickets = [];
+			}
+		} else {
+			console.warn('[tickets/+page.svelte] window.api.getTicketsByDate is not available.');
+			tickets = [];
+		}
+	}
+
+	onMount(async () => {
+		// Fetch tickets for today's date on initial mount
+		await fetchTicketsForDate(new Date());
+	});
+
+	async function showTicket(id) {
+		if (window.api && typeof window.api.getTicketById === 'function') {
+			try {
+				const ticketData = await window.api.getTicketById(id);
+				if (ticketData && ticketData.status === 200 && ticketData.ticket) {
+					currentTicket = ticketData.ticket;
+				} else {
+					console.error("Error fetching ticket via IPC:", ticketData?.error || ticketData?.message || "Unknown error");
+					currentTicket = {}; // Reset or handle error
+				}
+			} catch (ipcError) {
+				console.error("IPC call to getTicketById failed:", ipcError);
+				currentTicket = {};
+			}
+		} else {
+			console.warn('[tickets/+page.svelte] window.api.getTicketById is not available.');
+		}
+	}
+
+	async function cancelTicketAction() { // Renamed to avoid conflict with Svelte's cancel
+		if (printReady) {
+			printReady = false;
+			cancelReady = false;
+			return;
+		}
+
+		if (cancelReady) {
+			if (window.api && typeof window.api.cancelTicketById === 'function') {
+				try {
+					const cancelResponse = await window.api.cancelTicketById(currentTicket.id);
+					if (cancelResponse && cancelResponse.status === 200 && cancelResponse.success) {
+						// Refresh tickets for the currentTicket's date
+						if (currentTicket.date) {
+							await fetchTicketsForDate(new Date(currentTicket.date));
+						}
+						currentTicket = cancelResponse.ticket; // Update current ticket with canceled status
+						cancelReady = false;
+					} else {
+						console.error("Error canceling ticket via IPC:", cancelResponse?.error || cancelResponse?.message || "Unknown error");
+					}
+				} catch (ipcError) {
+					console.error("IPC call to cancelTicketById failed:", ipcError);
+				}
+			} else {
+				console.warn('[tickets/+page.svelte] window.api.cancelTicketById is not available.');
+			}
+		} else {
+			cancelReady = true;
+		}
+	}
+
+	let printPromise = $state(null);
+	let printTimeout = null;
+	const successResetTime = 1000;
+	let resetTime;
+
+	async function handlePrint() { // Removed ticket argument, uses currentTicket
+		if (printTimeout) clearTimeout(printTimeout);
+
+		if (cancelReady) { // If cancel is armed, de-arm print and cancel
+			printReady = false;
+			cancelReady = false;
+			printPromise = null; // Reset promise if we are bailing
+			return Promise.resolve({ success: false, message: "Print cancelled due to cancel action."}); // Return a resolved promise
+		}
+
+		if (printReady) {
+			if (window.api && typeof window.api.printTicket === 'function') {
+				const printData = { ticket: currentTicket, details: ticketItems, printerIP: printerConfig.ip };
+				// Ensure printData is serializable and not deeply nested with reactive Svelte objects
+				const serializablePrintData = JSON.parse(JSON.stringify(printData));
+
+				printPromise = window.api.printTicket(serializablePrintData)
+						.then(response => {
+							resetTime = response.success ? 300 : 5000;
+							return response; // Propagate the response
+						})
+						.catch(error => {
+							console.error("Error during printTicket IPC call:", error);
+							resetTime = 5000;
+							return { success: false, message: error.message || "Print failed" }; // Return error structure
+						})
+						.finally(() => {
+							printTimeout = setTimeout(() => {
+								printPromise = null;
+								printReady = false; // Reset printReady after timeout
+							}, resetTime);
+						});
+			} else {
+				console.warn('[tickets/+page.svelte] window.api.printTicket is not available.');
+				printPromise = Promise.resolve({ success: false, message: "Print API not available." }); // Mock promise
+				printReady = false;
+			}
+		} else {
+			printReady = true;
+			printPromise = null; // Clear any previous promise state
+			// No actual printing is done here, just arming the button.
+			// The actual print happens when printReady is true and the button is clicked again.
+			// So, we resolve a "dummy" promise to allow the ActionButton to await something.
+			return Promise.resolve({ success: true, message: "Printer armed."});
+		}
+		return printPromise; // Return the promise so ActionButton can await it
+	}
+
+	// This function is used by the Calendar component to update tickets
+	function updateTicketsFromCalendar(newTickets) {
+		tickets = newTickets;
+	}
+
+</script>
+
+<main class="ticketpage">
+	<div class="calendar">
+		<!-- Pass a callback to Calendar to update tickets -->
+		<Calendar bind:tickets={updateTicketsFromCalendar} />
+	</div>
+
+	<div class="table-wrapper">
+		<div class="table">
+			<div class="table--header">
+				<p>fecha</p>
+				<p>total</p>
+			</div>
+			<ul class="table--body">
+				{#each tickets as ticket (ticket.id)}
+					<li class="table--item {currentTicket.id === ticket.id ? 'selected' : ''}">
+						<button onclick={() => showTicket(ticket.id)}>
+							<p class="date">
+								{new Date(ticket.date).toLocaleTimeString(undefined, {
+									timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+								})}
+							</p>
+							<p class="number">{ticket.total_amount}</p>
+							<div class="payment">
+								{#if ticket.card > 0}
+									<div class="icon card">
+										<img src={cardIcon} alt="tarjeta" />
+									</div>
+								{/if}
+								{#if ticket.cash > 0}
+									<div class="icon cash">
+										<img src={cashIcon} alt="efectivo" />
+									</div>
+								{/if}
+							</div>
+							<div class="cancel {ticket.canceled ? 'cancelado' : ''}"></div>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	</div>
+
+	<div class="panel-wrapper">
+		{#if currentTicket.id}
+			<div class="panel" in:fly={{y: 30, duration: 500}}>
+				{#key currentTicket.id}
+					<div class="panel--header">
+						<div class="biginfo">
+							<p class="title">{currentTicket.id.slice(0, 8)}</p>
+							<p class="title">{date}</p>
+						</div>
+						<div class="labels">
+							<p>cantidad</p>
+							<p>producto</p>
+							<p>precio</p>
+							<p>importe</p>
+						</div>
+					</div>
+					<ul class="panel--body">
+						{#each ticketItems as ticketItem (ticketItem.id)}
+							<TicketItem {ticketItem} />
+						{/each}
+					</ul>
+					<footer>
+						<!-- Display cash and card from currentTicket if needed -->
+						<!-- <p>Cash: {currentTicket.cash}</p> -->
+						<!-- <p>Card: {currentTicket.card}</p> -->
+						<div class="summary">
+							<p class="summary--label">Total</p>
+							<p class="summary--amount">{currentTicket.total_amount}</p>
+						</div>
+						<div class="buttonRow">
+							<ActionButton
+									action={cancelTicketAction}
+									text='cancelar'
+									flexBasis='50%'
+									bind:ready={cancelReady}
+									disabled={currentTicket.canceled}
+							/>
+							<ActionButton
+									action={handlePrint}
+									text='imprimir'
+									flexBasis='50%'
+									bind:ready={printReady}
+									promise={printPromise}
+							/>
+						</div>
+					</footer>
+				{/key}
+			</div>
+		{/if}
+	</div>
+</main>
+
+<style lang="scss">
+	/* Styles remain the same */
+	.ticketpage {
+		height: 100%;
+		display: grid;
+		grid-template-columns: 1fr 38% var(--ticketCol-width);
+	}
+
+	.calendar {
+		padding: 2em var(--panel-padding);
+	}
+
+	.table-wrapper {
+		padding: 2em var(--panel-padding);
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.panel-wrapper {
+		padding: 2em var(--panel-padding);
+		height: 100%;
+	}
+
+	.panel {
+		background: linear-gradient(var(--color-panel1), var(--color-panel2));
+		border-radius: var(--panel-border);
+		padding: 1em;
+		display: grid;
+		grid-template-rows: auto 1fr auto;
+		height: 100%;
+
+		&--header {
+			.biginfo {
+				display: flex;
+				justify-content: space-between;
+			}
+
+			.labels {
+				display: flex;
+				justify-content: space-between;
+				gap: 2em;
+				color: var(--color-text-secondary);
+				font-weight: 300;
+				font-size: 0.8em;
+
+				p {
+					flex-basis: 20%;
+					text-align: right;
+
+					&:first-of-type {
+						flex-basis: 10%;
+					}
+
+					&:nth-of-type(2) {
+						text-align: center;
+						flex-basis: 70%;
+						margin-left: 1em;
+					}
+				}
+			}
+		}
+
+		&--body {
+			max-height: 380px;
+			overflow-y: scroll;
+
+			&::-webkit-scrollbar {
+				width: 0.5em;
+			}
+
+			&::-webkit-scrollbar-track {
+				background: linear-gradient(var(--color-panel1), var(--color-panel2));
+				width: 1em;
+				border-radius: 50px;
+			}
+
+			&::-webkit-scrollbar-thumb {
+				background-color: var(--color-thead);
+				width: 0.5em;
+				border-radius: 50px;
+			}
+		}
+
+		footer {
+			.summary {
+				display: flex;
+				justify-content: space-between;
+				font-size: 2em;
+				padding: 1rem 0;
+
+				&--label {
+					color: var(--color-text-secondary);
+				}
+
+				&--amount {
+					font-weight: 700;
+					font-family: var(--font-numbers);
+				}
+			}
+
+			.buttonRow {
+				display: flex;
+				justify-content: space-between;
+				gap: 1em;
+			}
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: static/img/products/archi.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/brocheta.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/california.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/camara.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/chirashi.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/chorero.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/dragon.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/filadelfia.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/fujikaze.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/furioso.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/godzilla.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/gohan_especial.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/gohan_teriyaki.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/goro.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/ichiro.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/judoka.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/kokoro.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/maki-atun.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/maki-marlin.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/maki-salmon.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/maki.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/manchego.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/marlin.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/mirrey.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/mostro.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/panita.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/poke-atun.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/poke-camaron.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/poke-marlin.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/poke-salmon.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/pops.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/terminator.avif
+================================================
+[Non-text file]
+
+
+================================================
+FILE: static/img/products/vegan.avif
+================================================
+[Non-text file]
+
+
+
+
+================================================
+FILE: database.sqlite
+================================================
+[Non-text file]
+
+
+================================================
+FILE: forge.config.cjs
+================================================
+const { FusesPlugin } = require('@electron-forge/plugin-fuses');
+const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const path = require('path')
+const fs = require('fs-extra')
+
+module.exports = {
+  packagerConfig: {
+    asar: {
+      unpack: "**/node_modules/sqlite3/**"
+    },
+    extraResource: [
+      './database.sqlite'
+    ]
+  },
+
+  makers: [
+    {
+      name: '@electron-forge/maker-squirrel',
+      config: {},
+    },
+    {
+      name: '@electron-forge/maker-zip',
+      // platforms: ['darwin'],
+    },
+    {
+      name: '@electron-forge/maker-deb',
+      config: {},
+    },
+    {
+      name: '@electron-forge/maker-rpm',
+      config: {},
+    },
+  ],
+  plugins: [
+    {
+      name: '@electron-forge/plugin-vite',
+      config: {
+        // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
+        build: [
+          {
+            // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
+            entry: 'src/main.js',
+            config: 'vite.main.config.mjs', // Correctly points to your main process Vite config
+            target: 'main', // Likely an internal identifier for the plugin
+          },
+          {
+            entry: 'src/preload.js',
+            config: 'vite.preload.config.mjs', // Points to a Vite config for your preload script
+            target: 'preload', // Likely an internal identifier for the plugin
+          },
+        ],
+        renderer: [
+          {
+            name: 'main_window', // Name of your renderer process
+            config: 'vite.renderer.config.mjs', // Points to a Vite config for your Svelte frontend
+          },
+        ],
+      },
+    },
+    // Fuses are used to enable/disable various Electron functionality
+    // at package time, before code signing the application
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.EnableCookieEncryption]: true,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    }),
+  ],
+};
+
+
+
+================================================
+FILE: gsap-bonus.tgz
+================================================
+[Non-text file]
+
+
+================================================
+FILE: index.html
+================================================
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello World!</title>
+
+  </head>
+  <body>
+    <h1>💖 Hello World!</h1>
+    <p>Welcome to your Electron application.</p>
+    <script type="module" src="/src/renderer.js"></script>
+  </body>
+</html>
+
+
+
+================================================
+FILE: package.json
+================================================
+{
+  "name": "chibipos",
+  "productName": "chibipos",
+  "version": "1.0.0",
+  "description": "My Electron application description",
+  "main": ".vite/build/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron-forge start",
+    "build": "vite build --config vite.main.config.mjs",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "dev": "electron-forge start",
+    "prepare": "svelte-kit sync",
+    "format": "prettier --write .",
+    "lint": "prettier --check . && eslint .",
+    "standalone": "npx vite dev src/renderer/app --config vite.renderer.config.mjs"
+  },
+  "keywords": [],
+  "author": "guillermo",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.7.0",
+    "@electron-forge/maker-deb": "^7.7.0",
+    "@electron-forge/maker-rpm": "^7.7.0",
+    "@electron-forge/maker-squirrel": "^7.7.0",
+    "@electron-forge/maker-zip": "^7.7.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.7.0",
+    "@electron-forge/plugin-fuses": "^7.7.0",
+    "@electron-forge/plugin-vite": "^7.7.0",
+    "@electron/fuses": "^1.8.0",
+    "@eslint/compat": "^1.2.5",
+    "@eslint/js": "^9.18.0",
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@sveltejs/adapter-node": "^5.2.12",
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.20.8",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "electron": "35.0.2",
+    "electron-rebuild": "^3.2.9",
+    "escpos-usb": "^3.0.0-alpha.4",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-svelte": "^3.0.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-svelte": "^3.3.3",
+    "sass": "^1.87.0",
+    "svelte": "^5.0.0",
+    "svelte-preprocess": "^6.0.3",
+    "vite": "^6.0.0",
+    "vite-plugin-static-copy": "^2.3.1"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "escpos": "^3.0.0-alpha.6",
+    "escpos-network": "^3.0.0-alpha.5",
+    "fs-extra": "^11.3.0",
+    "gsap": "file:gsap-bonus.tgz",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^7.0.0-next.1",
+    "sqlite3": "^5.1.7",
+    "wait-on": "^8.0.3"
+  }
+}
+
+
+
+================================================
+FILE: svelte.config.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/svelte.config.js
+import path from 'path';
+import { fileURLToPath } from 'url';
+import adapter from '@sveltejs/adapter-static';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+
+// Helper to get __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/** @type {import('@sveltejs/kit').Config} */
+const config = {
+	preprocess: [vitePreprocess()],
+	compilerOptions: {
+		runes: true
+	},
+	kit: {
+		adapter: adapter({
+			pages: '../../../.vite/renderer-static/pages',
+			assets: '../../../.vite/renderer-static/assets',
+			fallback: 'index.html',
+			precompress: false,
+			strict: true
+		}),
+		alias: {
+			'$lib': 'src/renderer/app/lib/',
+		},
+		files: {
+			appTemplate: 'src/renderer/app/app.html',
+			routes: 'src/renderer/app/routes',
+			lib: 'src/renderer/app/lib',
+		},
+		embedded:true,
+	},
+};
+export default config;
+
+
+
+================================================
+FILE: vite.main.config.mjs
+================================================
+// /Users/cliffhall/Projects/chibipos/vite.main.config.mjs
+import { defineConfig } from 'vite';
+import { builtinModules } from 'node:module';
+import commonjs from '@rollup/plugin-commonjs'; // You may still need this for other CJS dependencies
+
+export default defineConfig({
+  // ... other Vite configurations ...
+  build: {
+    outDir: '.vite/build', // Ensure this matches your setup
+    lib: { // Ensure this is correctly configured for your main process entry
+      entry: 'src/main.js',
+      formats: ['es'],
+      fileName: (format) => `main.${format === 'es' ? 'js' : format}`,
+    },
+    rollupOptions: {
+      external: [
+        'electron',
+        ...builtinModules,
+        ...builtinModules.map(mod => `node:${mod}`),
+        'electron-squirrel-startup',
+        'sqlite3',
+        'serialport',
+        'escpos',
+        'escpos-network',
+        'escpos-usb',
+        'wait-on',
+        'sequelize',
+        'crypto-js',
+      ],
+      plugins: [
+        commonjs({
+          // With sequelize and crypto-js now external, the commonjs plugin's
+          // primary role here is for any *other* CJS dependencies you might
+          // have that are *not* external and need processing.
+          extensions: ['.js', '.cjs'],
+          // This can be helpful for other non-external CJS modules
+          // that might use dynamic requires.
+          ignoreDynamicRequires: true,
+          // transformMixedEsModules: true, // Generally good for CJS/ESM mixed modules
+          // interop: 'default', // Less critical for 'require' if the module is external
+        }),
+      ],
+    },
+    minify: false, // As per your previous config
+  },
+  ssr: { // As per your previous config
+    target: 'node',
+  },
+  resolve: { // As per your previous config
+    // conditions: ['node'],
+  },
+});
+
+
+
+================================================
+FILE: vite.preload.config.mjs
+================================================
+// /Users/cliffhall/Projects/chibipos/vite.preload.config.mjs
+import { defineConfig } from 'vite';
+import { builtinModules } from 'node:module';
+
+export default defineConfig({
+    build: {
+        // Output directory for the preload script (Electron Forge will place it correctly)
+        // outDir: '.vite/build', // Or let Electron Forge manage this fully
+        lib: {
+            entry: 'src/preload.js', // Path to your preload script
+            formats: ['cjs'],
+            fileName: () => 'preload.js',
+        },
+        rollupOptions: {
+            external: [
+                'electron', // Electron APIs (ipcRenderer, contextBridge)
+                ...builtinModules,
+                ...builtinModules.map(mod => `node:${mod}`),
+                // Add any other specific Node.js modules used ONLY in preload if not covered
+            ],
+        },
+        minify: false, // Or true for production
+    },
+    ssr: { // Preload scripts are more like Node modules than browser scripts
+        target: 'node',
+        // noExternal: [], // If you need to bundle specific CJS deps into preload
+    },
+    // Ensure this path is relative to the project root if preload.js is in src/
+    // root: 'src', // Not usually needed if entry is 'src/preload.js'
+});
+
+
+
+================================================
+FILE: vite.renderer.config.mjs
+================================================
+// /Users/cliffhall/Projects/chibipos/vite.renderer.config.mjs
+import path from 'path';
+import { defineConfig } from 'vite';
+import { sveltekit } from '@sveltejs/kit/vite';
+
+const rendererRoot = path.resolve(__dirname, 'src/renderer/app');
+
+export default defineConfig({
+    root: rendererRoot,
+    plugins: [
+        sveltekit()
+    ],
+    build: {
+        outDir: path.resolve(__dirname, '.vite/renderer/svelte_kit_build'),
+        emptyOutDir: true,
+    },
+    server: {
+        fs: {
+            allow: [path.resolve(rendererRoot, '../../..')]
+        }
+    },
+    ssr: {
+        noExternal: ['@sveltejs/kit'],
+        optimizeDeps: {
+            include: ['@sveltejs/kit']
+        }
+    },
+    optimizeDeps: {
+        include: ['@sveltejs/kit']
+    }
+});
+
+
+
+
+================================================
+FILE: src/main.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/main.js
+
+// Add this line at the top to inform ESLint/linters about globals injected by the Vite plugin
+/* global MAIN_WINDOW_VITE_DEV_SERVER_URL, MAIN_WINDOW_VITE_NAME */
+
+// ****************************************
+// IMPORTS
+// ****************************************
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { readFile } from 'fs/promises';
+import path from 'node:path';
+import fs from 'node:fs';
+
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+
+import { initializeSequelize } from './renderer/app/lib/db/config.js';
+import { defineCatProduct } from './renderer/app/lib/db/models/catProduct.js';
+import { defineProduct } from './renderer/app/lib/db/models/product.js';
+import { defineDailySales } from './renderer/app/lib/db/models/daily_sales.js';
+import { defineDailySalesDetails } from './renderer/app/lib/db/models/daily_salesDetails.js';
+import { defineTicket } from './renderer/app/lib/db/models/ticket.js';
+import { defineTicketDetails } from './renderer/app/lib/db/models/ticketDetails.js';
+import { setupAssociations } from './renderer/app/lib/db/associations.js';
+
+// Robustly get Sequelize constructor and Op
+import sequelizePackage from 'sequelize';
+const { Sequelize: ResolvedSequelizeConstructor, Op: ResolvedOp, DataTypes: SequelizeDataTypes } = sequelizePackage;
+
+// Runtime check for ResolvedSequelize
+if (typeof ResolvedSequelizeConstructor !== 'function') {
+  const errorMsg = '[Main Process] Critical: ResolvedSequelizeConstructor is not a constructor function.';
+  console.error(errorMsg, 'Type:', typeof ResolvedSequelizeConstructor, 'Package keys:', Object.keys(sequelizePackage).join(', '));
+  if (dialog && typeof dialog.showErrorBox === 'function') {
+    dialog.showErrorBox("Initialization Error", "Failed to load database library (Sequelize). The application cannot start.");
+  }
+  if (app && typeof app.quit === 'function' && (typeof app.isQuitting !== 'function' || !app.isQuitting())) {
+    app.quit();
+  }
+  throw new Error(errorMsg);
+}
+
+import CryptoJS from 'crypto-js';
+const started = require('electron-squirrel-startup');
+
+
+// print functions
+import printTicket from './printing/printTicket.js';
+import printKitchen from './printing/printKitchen.js';
+import printSale from './printing/printSale.js';
+
+const isDev = !app.isPackaged;
+
+const CRYPTO_KEY = process.env.CHIBIPOS_CRYPTO_KEY || 'your-default-super-secret-key-for-dev';
+
+if (CRYPTO_KEY === 'your-default-super-secret-key-for-dev' && app.isPackaged) { // Corrected: warn if default key is used AND it's packaged (production)
+  console.warn('[Main Process] WARNING: Using default CRYPTO_KEY in production. This is insecure!');
+}
+
+
+function encryptDataForMain(data) {
+  const jsonString = JSON.stringify(data);
+  return CryptoJS.AES.encrypt(jsonString, CRYPTO_KEY).toString();
+}
+
+function decryptImportedMenu(encryptedBase64Menu) {
+  try {
+    const ciphertext = Buffer.from(encryptedBase64Menu, 'base64').toString('latin1');
+    const bytes = CryptoJS.AES.decrypt(ciphertext, CRYPTO_KEY);
+    const decryptedJson = bytes.toString(CryptoJS.enc.Utf8);
+
+    if (!decryptedJson) {
+      console.error('[Main Process] Decryption resulted in empty data.');
+      throw new Error('Menu decryption failed: output is empty. Check key or data format.');
+    }
+    return JSON.parse(decryptedJson);
+  } catch (error) {
+    console.error('[Main Process] Error during menu decryption process:', error);
+    throw new Error(`Menu decryption failed: ${error.message}`);
+  }
+}
+
+if (started) {
+  app.quit();
+}
+
+let mainWindow;
+let sequelizeInstance;
+let dbModels = {};
+
+async function initializeDatabase() {
+  try {
+    // Pass the resolved Sequelize constructor from main.js to the initializer function
+    const { sequelize, testConnection, dbPath } = initializeSequelize(app, ResolvedSequelizeConstructor);
+    sequelizeInstance = sequelize;
+
+    // Database copying logic for production
+    if (app.isPackaged) {
+      const packagedDbPath = path.resolve(process.resourcesPath, 'app', 'database.sqlite');
+      if (!fs.existsSync(dbPath) && fs.existsSync(packagedDbPath)) {
+        console.log(`[Main Process] Database not found at ${dbPath}. Copying from ${packagedDbPath}...`);
+        fs.copyFileSync(packagedDbPath, dbPath);
+        console.log(`[Main Process] Database copied successfully to ${dbPath}.`);
+      } else if (!fs.existsSync(packagedDbPath) && !fs.existsSync(dbPath)) {
+        console.error(`[Main Process] Packaged database not found at ${packagedDbPath} and no existing DB at ${dbPath}. Cannot proceed.`);
+        throw new Error("Application database is missing. Please reinstall or contact support.");
+      } else if (fs.existsSync(dbPath)) {
+        console.log(`[Main Process] Database found at ${dbPath}. No copy needed.`);
+      } else if (!fs.existsSync(packagedDbPath)) {
+        console.log(`[Main Process] Packaged database not found at ${packagedDbPath}. Assuming DB will be created or already exists at ${dbPath}.`);
+      }
+    }
+
+    await testConnection();
+
+    // Define models (ensure sequelizeInstance is valid)
+    if (!sequelizeInstance || typeof sequelizeInstance.sync !== 'function') {
+      throw new Error("Sequelize instance is not valid after initialization.");
+    }
+    dbModels.CatProduct = defineCatProduct(sequelizeInstance);
+    dbModels.Product = defineProduct(sequelizeInstance);
+    dbModels.Ticket = defineTicket(sequelizeInstance);
+    dbModels.DailySales = defineDailySales(sequelizeInstance);
+    dbModels.TicketDetails = defineTicketDetails(sequelizeInstance);
+    dbModels.DailySalesDetails = defineDailySalesDetails(sequelizeInstance);
+
+    setupAssociations(sequelizeInstance);
+
+    await sequelizeInstance.sync({ alter: false });
+    console.log('[Main Process] Database schema synchronized.');
+
+    return true;
+  } catch (error) {
+    console.error('[Main Process] Error during database initialization process:', error);
+    dialog.showErrorBox("Database Error", `Could not initialize the application database. ${error.message}`);
+    // The 'app.isQuitting()' issue originates here.
+    // If 'app' is not the true Electron app object, this will fail.
+    // This points to a bundler issue with the 'electron' module.
+    try {
+      if (app && typeof app.isQuitting === 'function' && !app.isQuitting()) {
+        if (typeof app.quit === 'function') app.quit();
+      } else if (app && typeof app.isQuitting !== 'function') {
+        // If app.isQuitting is not a function, it's a strong sign 'app' is not the real Electron app.
+        console.error("[Main Process] CRITICAL: Electron 'app.isQuitting' is not a function. Bundling issue suspected. Forcing quit.");
+        if (typeof app.quit === 'function') app.quit(); else process.exit(1); // Fallback
+      }
+    } catch (e) {
+      console.error("[Main Process] Error trying to quit app after DB init failure:", e);
+      process.exit(1); // Force exit if quitting logic itself fails
+    }
+    return false;
+  }
+}
+
+async function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1180,
+    height: 713,
+    resizable: isDev,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  if (isDev) {
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      console.log(`[Main Process] Attempting to load DEV URL: ${MAIN_WINDOW_VITE_DEV_SERVER_URL}`);
+      await mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+          .then(() => {
+            console.log(`[Main Process] Successfully initiated DEV load for: ${MAIN_WINDOW_VITE_DEV_SERVER_URL}`);
+          })
+          .catch(err => {
+            console.error(`[Main Process] FAILED to load DEV URL: ${MAIN_WINDOW_VITE_DEV_SERVER_URL}`, err);
+            dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${MAIN_WINDOW_VITE_DEV_SERVER_URL}. Ensure it's running.`);
+          });
+    } else {
+      console.error("[Main Process] MAIN_WINDOW_VITE_DEV_SERVER_URL is not defined in development. Cannot load renderer.");
+      dialog.showErrorBox("Configuration Error", "Vite development server URL is missing.");
+    }
+  } else {
+    const indexPath = path.join(__dirname, '..', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html');
+    console.log(`[Main Process] Attempting to load PROD URL: file://${indexPath}`);
+    await mainWindow.loadFile(indexPath)
+        .then(() => console.log(`[Main Process] Successfully loaded PROD file: ${indexPath}`))
+        .catch(err => {
+          console.error(`[Main Process] FAILED to load PROD file: ${indexPath}`, err);
+          dialog.showErrorBox("Application Error", `Could not load the application. File not found: ${indexPath}`);
+        });
+  }
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (isMainFrame) {
+      console.error(`[Main Process WebContents] Main frame did-fail-load:
+        URL: ${validatedURL}
+        Error Code: ${errorCode}
+        Description: ${errorDescription}`);
+    }
+  });
+
+  if (isDev) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+
+  return mainWindow;
+}
+
+app.whenReady().then(async () => {
+  const dbInitialized = await initializeDatabase();
+  if (!dbInitialized) {
+    // Quitting logic is now more robustly handled within initializeDatabase's catch block
+    // but ensure app exits if it reaches here and db isn't initialized.
+    if (app && typeof app.quit === 'function' && (typeof app.isQuitting !== 'function' || !app.isQuitting())) {
+      app.quit();
+    } else if (app && typeof app.isQuitting !== 'function') {
+      console.error("[Main Process] App ready but DB not initialized, and app.isQuitting is not a function. Forcing exit.");
+      process.exit(1);
+    }
+    return;
+  }
+
+  await createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+// *****************
+// IPC Handlers for Database
+// IMPORTANT: Replace all instances of 'Op' with 'ResolvedOp'
+// *****************
+ipcMain.handle('get-products', async () => {
+  if (!dbModels.Product) {
+    console.error('[IPC get-products] Product model is not available.');
+    return { error: 'Product model not initialized on server.' };
+  }
+  try {
+    const products = await dbModels.Product.findAll();
+    return JSON.parse(JSON.stringify(products));
+  } catch (error) {
+    console.error('[IPC get-products] Error fetching products:', error);
+    return { error: error.message };
+  }
+});
+
+ipcMain.handle('get-categories', async () => {
+  if (!dbModels.CatProduct) {
+    console.error('[IPC get-categories] CatProduct model is not available.');
+    return { error: 'Category model not initialized on server.' };
+  }
+  try {
+    const categories = await dbModels.CatProduct.findAll();
+    return JSON.parse(JSON.stringify(categories));
+  } catch (error) {
+    console.error('[IPC get-categories] Error fetching categories:', error);
+    return { error: error.message };
+  }
+});
+
+ipcMain.handle('get-daily-sale-by-date', async (event, dateParam) => {
+  if (!dbModels.DailySales) {
+    console.error('[IPC get-daily-sale-by-date] DailySales model is not available.');
+    return { status: 500, error: 'DailySales model not initialized on server.' };
+  }
+  try {
+    const date = new Date(dateParam + 'T00:00:00').toISOString().split('T')[0];
+    console.log(`[IPC get-daily-sale-by-date] Searching for sale on date: ${date}`);
+
+    const sale = await dbModels.DailySales.findOne({
+      where: { date },
+    });
+
+    if (sale) {
+      return { status: 200, sale: JSON.parse(JSON.stringify(sale)) };
+    } else {
+      console.log(`[IPC get-daily-sale-by-date] No sale found for date: ${dateParam}`);
+      return { status: 204, message: `No sale found for date: ${dateParam}` };
+    }
+  } catch (error) {
+    console.error('[IPC get-daily-sale-by-date] Error fetching daily sale by date:', error);
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('get-daily-sales-by-month', async (event, dateParam) => {
+  if (!dbModels.DailySales) {
+    console.error('[IPC get-daily-sales-by-month] DailySales model is not available.');
+    return { status: 500, error: 'DailySales model not initialized on server.' };
+  }
+  try {
+    const date = new Date(dateParam + 'T00:00:00');
+    const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+
+    const startDateISO = startDate.toISOString().split('T')[0];
+    const endDateISO = endDate.toISOString().split('T')[0];
+
+    console.log(`[IPC get-daily-sales-by-month] Searching for sales between ${startDateISO} and ${endDateISO}`);
+
+    const sales = await dbModels.DailySales.findAll({
+      where: {
+        date: { [ResolvedOp.between]: [startDateISO, endDateISO] } // Use ResolvedOp
+      },
+      order: [['date', 'DESC']]
+    });
+
+    return { sales: JSON.parse(JSON.stringify(sales)) };
+  } catch (error) {
+    console.error('[IPC get-daily-sales-by-month] Error fetching sales by month:', error);
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('export-daily-sale-by-id', async (event, id) => {
+  if (!dbModels.DailySales || !dbModels.DailySalesDetails) {
+    console.error('[IPC export-daily-sale-by-id] DailySales or DailySalesDetails model is not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+  try {
+    console.log(`[IPC export-daily-sale-by-id] Exporting sale with ID: ${id}`);
+    const sale = await dbModels.DailySales.findByPk(id, {
+      include: [{
+        model: dbModels.DailySalesDetails,
+        as: 'details'
+      }]
+    });
+
+    if (sale) {
+      const encryptedSale = encryptDataForMain(sale);
+      return { status: 200, encryptedSale };
+    } else {
+      console.log(`[IPC export-daily-sale-by-id] No sale found for ID: ${id}`);
+      return { status: 204, message: `No sale found for ID: ${id}` };
+    }
+  } catch (error) {
+    console.error('[IPC export-daily-sale-by-id] Error exporting daily sale:', error);
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('get-daily-sale-report-by-id', async (event, id) => {
+  if (!dbModels.DailySales || !dbModels.DailySalesDetails || !dbModels.Product) {
+    console.error('[IPC get-daily-sale-report-by-id] One or more required models are not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+  try {
+    console.log(`[IPC get-daily-sale-report-by-id] Fetching sale report for ID: ${id}`);
+    const saleReport = await dbModels.DailySales.findByPk(id, {
+      attributes: { exclude: ['createdAt', 'updatedAt'] },
+      include: [{
+        model: dbModels.DailySalesDetails,
+        as: 'details',
+        attributes: ['quantity', 'net_sales', 'av_price', 'discount_amount'],
+        include: [{
+          model: dbModels.Product,
+          as: 'productInfo',
+          attributes: ['name'],
+        }],
+        order: [[ { model: dbModels.Product, as: 'productInfo' }, 'name', 'ASC' ]]
+      }],
+    });
+
+    if (saleReport) {
+      return { status: 200, report: JSON.parse(JSON.stringify(saleReport)) };
+    } else {
+      console.log(`[IPC get-daily-sale-report-by-id] No sale report found for ID: ${id}`);
+      return { status: 204, message: `No sale report found for ID: ${id}` };
+    }
+  } catch (error) {
+    console.error('[IPC get-daily-sale-report-by-id] Error fetching daily sale report:', error);
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('get-ticket-by-id', async (event, ticketId) => {
+  if (!dbModels.Ticket || !dbModels.TicketDetails || !dbModels.Product) {
+    console.error('[IPC get-ticket-by-id] One or more required models are not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+  try {
+    console.log(`[IPC get-ticket-by-id] Fetching ticket with ID: ${ticketId}`);
+    const ticket = await dbModels.Ticket.findByPk(ticketId, {
+      attributes: { exclude: ['createdAt', 'updatedAt'] },
+      include: [{
+        model: dbModels.TicketDetails,
+        as: 'details',
+        attributes: ['quantity', 'price'],
+        include: [{
+          model: dbModels.Product,
+          as: 'productInfo',
+          attributes: ['name']
+        }]
+      }]
+    });
+
+    if (ticket) {
+      return { status: 200, ticket: JSON.parse(JSON.stringify(ticket)) };
+    } else {
+      console.log(`[IPC get-ticket-by-id] No ticket found for ID: ${ticketId}`);
+      return { status: 404, message: `No ticket found for ID: ${ticketId}` };
+    }
+  } catch (error) {
+    console.error('[IPC get-ticket-by-id] Error fetching ticket by ID:', error);
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('cancel-ticket-by-id', async (event, ticketId) => {
+  if (!dbModels.Ticket) {
+    console.error('[IPC cancel-ticket-by-id] Ticket model is not available.');
+    return { status: 500, error: 'Ticket model not initialized on server.' };
+  }
+  try {
+    console.log(`[IPC cancel-ticket-by-id] Attempting to cancel ticket with ID: ${ticketId}`);
+    const ticket = await dbModels.Ticket.findByPk(ticketId);
+
+    if (!ticket) {
+      console.log(`[IPC cancel-ticket-by-id] No ticket found for ID: ${ticketId} to cancel.`);
+      return { status: 404, error: `Ticket with ID ${ticketId} not found.` };
+    }
+
+    if (ticket.canceled) {
+      console.log(`[IPC cancel-ticket-by-id] Ticket with ID: ${ticketId} is already canceled.`);
+      return { status: 200, success: true, message: 'Ticket already canceled.' };
+    }
+
+    ticket.canceled = true;
+    await ticket.save();
+    console.log(`[IPC cancel-ticket-by-id] Ticket with ID: ${ticketId} has been canceled.`);
+    return { status: 200, success: true, ticket: JSON.parse(JSON.stringify(ticket)) };
+  } catch (error) {
+    console.error(`[IPC cancel-ticket-by-id] Error canceling ticket with ID ${ticketId}:`, error);
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
+  if (!dbModels.Ticket || !dbModels.TicketDetails || !dbModels.Product || !dbModels.DailySales || !dbModels.DailySalesDetails) {
+    console.error('[IPC update-daily-sales-report] One or more required models are not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+
+  const transaction = await sequelizeInstance.transaction();
+
+  try {
+    console.log(`[IPC update-daily-sales-report] Updating sales report for date: ${dateString}`);
+    const targetDate = new Date(dateString + 'T00:00:00.000Z');
+
+    const start = new Date(targetDate);
+    start.setUTCHours(6, 0, 0, 0);
+
+    const end = new Date(targetDate);
+    end.setUTCDate(end.getUTCDate() + 1);
+    end.setUTCHours(5, 59, 59, 999);
+
+    const startISO = start.toISOString();
+    const endISO = end.toISOString();
+
+    console.log(`[IPC update-daily-sales-report] Ticket data window: ${startISO} to ${endISO}`);
+
+    const canceledTicketsData = await dbModels.Ticket.findOne({
+      attributes: [
+        [sequelizeInstance.Sequelize.fn('COUNT', sequelizeInstance.Sequelize.col('id')), 'canceled_count'],
+      ],
+      where: {
+        date: { [ResolvedOp.between]: [startISO, endISO] }, // Use ResolvedOp
+        canceled: true,
+      },
+      raw: true,
+      transaction
+    });
+
+    const validTicketsData = await dbModels.Ticket.findOne({
+      attributes: [
+        [sequelizeInstance.Sequelize.fn('COUNT', sequelizeInstance.Sequelize.col('id')), 'ticket_count'],
+        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('cash')), 'sum_cash'],
+        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('card')), 'sum_card'],
+      ],
+      where: {
+        date: { [ResolvedOp.between]: [startISO, endISO] }, // Use ResolvedOp
+        canceled: false,
+      },
+      raw: true,
+      transaction
+    });
+
+    const lineItems = await dbModels.TicketDetails.findAll({
+      attributes: [
+        'product_id',
+        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('quantity')), 'sum_quantity'],
+        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('extended_price')), 'sum_extended_price'],
+        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('discount_amount')), 'sum_discount_amount'],
+        [sequelizeInstance.Sequelize.literal('SUM(ticket_details.price * ticket_details.quantity)'), 'sum_total_sale'],
+      ],
+      include: [
+        {
+          model: dbModels.Ticket,
+          as: 'ticketHeader',
+          attributes: [],
+          where: {
+            date: { [ResolvedOp.between]: [startISO, endISO] }, // Use ResolvedOp
+            canceled: false,
+          }
+        },
+        {
+          model: dbModels.Product,
+          as: 'productInfo',
+          attributes: ['id', 'name']
+        }
+      ],
+      group: ['ticket_details.product_id', 'productInfo.id', 'productInfo.name'],
+      raw: true,
+      transaction
+    });
+
+    const netSales = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_extended_price || 0), 0);
+    const totalSales = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_total_sale || 0), 0);
+    const discountAmount = lineItems.reduce((sum, item) => sum + parseFloat(item.sum_discount_amount || 0), 0);
+
+    const totalCash = parseFloat(validTicketsData?.sum_cash || 0);
+    const totalCard = parseFloat(validTicketsData?.sum_card || 0);
+    const ticketCount = parseInt(validTicketsData?.ticket_count || 0, 10);
+    const canceledCount = parseInt(canceledTicketsData?.canceled_count || 0, 10);
+
+    if (ticketCount === 0 && lineItems.length > 0) {
+      console.warn("[IPC update-daily-sales-report] Line items found but ticket_count is zero. Check ticket query.");
+    }
+
+    const reportDateForDB = new Date(dateString + 'T00:00:00').toISOString().split('T')[0];
+
+    const dailySale = await dbModels.DailySales.create({
+      date: reportDateForDB,
+      net_sales: netSales,
+      total_sales: totalSales,
+      cash: totalCash,
+      card: totalCard,
+      ticket_count: ticketCount,
+      canceled_count: canceledCount,
+      average_ticket: ticketCount > 0 ? Math.round(netSales / ticketCount) : 0,
+      discount_amount: discountAmount,
+    }, { transaction });
+
+    const saleDetails = lineItems.map(item => ({
+      date: reportDateForDB,
+      daily_sales_id: dailySale.id,
+      product_id: item.product_id,
+      quantity: parseInt(item.sum_quantity, 10),
+      net_sales: parseFloat(item.sum_extended_price),
+      av_price: parseInt(item.sum_quantity, 10) > 0 ? Math.round(parseFloat(item.sum_extended_price) / parseInt(item.sum_quantity, 10)) : 0,
+      discount_amount: parseFloat(item.sum_discount_amount)
+    }));
+
+    if (saleDetails.length > 0) {
+      await dbModels.DailySalesDetails.bulkCreate(saleDetails, { transaction });
+    }
+
+    await transaction.commit();
+    console.log(`[IPC update-daily-sales-report] Successfully updated sales report for ${reportDateForDB}`);
+    return { status: 200, dailySale: JSON.parse(JSON.stringify(dailySale)) };
+
+  } catch (error) {
+    console.error('[IPC update-daily-sales-report] Error processing sales report:', error);
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') { // Check transaction exists
+      await transaction.rollback();
+    }
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('update-menu-from-import', async (event, menuData) => {
+  if (!dbModels.CatProduct || !dbModels.Product) {
+    console.error('[IPC update-menu-from-import] CatProduct or Product model is not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+  if (!menuData || !Array.isArray(menuData.categories)) {
+    return { status: 400, error: 'Invalid menu data provided.' };
+  }
+
+  const transaction = await sequelizeInstance.transaction();
+  try {
+    console.log('[IPC update-menu-from-import] Starting menu update...');
+    await dbModels.Product.destroy({ where: {}, transaction, truncate: true });
+    await dbModels.CatProduct.destroy({ where: {}, transaction, truncate: true });
+    console.log('[IPC update-menu-from-import] Cleared existing products and categories.');
+
+    for (const categoryData of menuData.categories) {
+      if (!categoryData.name) continue;
+
+      const newCategory = await dbModels.CatProduct.create({
+        name: categoryData.name
+      }, { transaction });
+      console.log(`[IPC update-menu-from-import] Created category: ${newCategory.name}`);
+
+      if (Array.isArray(categoryData.products) && categoryData.products.length > 0) {
+        const productsToCreate = categoryData.products.map(productData => ({
+          name: productData.name,
+          price: parseFloat(productData.price || 0),
+          image: productData.image || null,
+          catproduct_id: newCategory.id,
+          status_active: productData.status_active !== undefined ? productData.status_active : true,
+        })).filter(p => p.name && p.price >= 0);
+
+        if (productsToCreate.length > 0) {
+          await dbModels.Product.bulkCreate(productsToCreate, { transaction });
+          console.log(`[IPC update-menu-from-import] Created ${productsToCreate.length} products for category: ${newCategory.name}`);
+        }
+      }
+    }
+
+    await transaction.commit();
+    console.log('[IPC update-menu-from-import] Menu update successful.');
+    return { status: 200, success: true, message: 'Menu updated successfully.' };
+
+  } catch (error) {
+    console.error('[IPC update-menu-from-import] Error updating menu:', error);
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') { // Check transaction exists
+      await transaction.rollback();
+    }
+    return { status: 500, error: error.message };
+  }
+});
+
+ipcMain.handle('import-update-menu', async (event, encryptedBase64Menu) => {
+  if (!dbModels.CatProduct || !dbModels.Product) {
+    console.error('[IPC import-update-menu] CatProduct or Product model is not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+
+  if (!encryptedBase64Menu) {
+    return { status: 400, error: 'No encrypted menu data provided.' };
+  }
+
+  let transaction;
+  try {
+    transaction = await sequelizeInstance.transaction();
+    console.log('[IPC import-update-menu] Attempting to decrypt and import menu...');
+    const decryptedMenu = decryptImportedMenu(encryptedBase64Menu);
+
+    if (!decryptedMenu || !Array.isArray(decryptedMenu.cats) || !Array.isArray(decryptedMenu.products)) {
+      if (transaction) await transaction.rollback(); // Rollback if transaction was started
+      return { status: 400, error: 'Decrypted menu data is not in the expected format.' };
+    }
+
+    const { cats, products } = decryptedMenu;
+
+    if ((cats && cats.length > 0) || (products && products.length > 0)) {
+      console.log(`[IPC import-update-menu] Processing ${cats.length} categories and ${products.length} products.`);
+
+      if (cats.length > 0) {
+        await dbModels.CatProduct.bulkCreate(
+            cats.map(cat => ({
+              id: cat.id,
+              name: cat.nombre
+            })),
+            {
+              updateOnDuplicate: ['name'],
+              transaction
+            }
+        );
+        console.log('[IPC import-update-menu] Categories processed.');
+      }
+
+      if (products.length > 0) {
+        await dbModels.Product.bulkCreate(
+            products.map(product => ({
+              id: product.id,
+              name: product.nombre,
+              image: product.image,
+              price: parseFloat(product.precio) || 0,
+              catproduct_id: product.catproducto_id,
+              status_active: product.status_active !== undefined ? product.status_active : true
+            })),
+            {
+              updateOnDuplicate: ['name', 'image', 'price', 'catproduct_id', 'status_active'],
+              transaction
+            }
+        );
+        console.log('[IPC import-update-menu] Products processed.');
+      }
+    } else {
+      console.log('[IPC import-update-menu] No categories or products found in the decrypted menu data to process.');
+    }
+
+    await transaction.commit();
+    console.log('[IPC import-update-menu] Menu import/update successful.');
+    return { status: 200, success: true, message: 'Menu updated successfully.' };
+
+  } catch (error) {
+    console.error('[IPC import-update-menu] Error processing menu import:', error);
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
+      await transaction.rollback();
+    }
+    return { status: 500, error: `Failed to import menu. ${error.message.includes('decryption failed') ? 'Decryption error.' : 'Server error.'}` };
+  }
+});
+
+ipcMain.handle('delete-all-menu-data', async () => {
+  if (!dbModels.CatProduct || !dbModels.Product) {
+    console.error('[IPC delete-all-menu-data] CatProduct or Product model is not available.');
+    return { status: 500, error: 'Required models not initialized on server.' };
+  }
+
+  let transaction;
+  try {
+    transaction = await sequelizeInstance.transaction();
+    console.log('[IPC delete-all-menu-data] Attempting to delete all products and categories...');
+
+    await dbModels.Product.destroy({ where: {}, transaction });
+    console.log('[IPC delete-all-menu-data] All products deleted.');
+
+    await dbModels.CatProduct.destroy({ where: {}, transaction });
+    console.log('[IPC delete-all-menu-data] All categories deleted.');
+
+    await transaction.commit();
+    console.log('[IPC delete-all-menu-data] All menu data successfully deleted.');
+    return { status: 200, success: true, message: 'All menu data has been deleted.' };
+
+  } catch (error) {
+    console.error('[IPC delete-all-menu-data] Error deleting menu data:', error);
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
+      await transaction.rollback();
+    }
+    return { status: 500, error: 'Failed to delete menu data.' };
+  }
+});
+
+// src/main.js
+// ... other ipcMain.handle calls ...
+
+ipcMain.handle('get-ticket-by-date', async (event, dateParam) => {
+  if (!dbModels.Ticket) {
+    console.error('[IPC get-ticket-by-date] Ticket model is not available.');
+    return { status: 500, error: 'Ticket model not initialized on server.' };
+  }
+  try {
+    // Assuming dateParam is in 'YYYY-MM-DD' format from the client
+    const targetDate = new Date(dateParam + 'T00:00:00.000Z');
+
+    const startOfDay = new Date(targetDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    console.log(`[IPC get-ticket-by-date] Searching for tickets between: ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
+
+    const tickets = await dbModels.Ticket.findAll({
+      where: {
+        date: {
+          [ResolvedOp.gte]: startOfDay,
+          [ResolvedOp.lte]: endOfDay,
+        },
+      },
+      order: [['date', 'DESC']], // Optional: order by date
+    });
+    return JSON.parse(JSON.stringify(tickets)); // Return the array of tickets
+  } catch (error) {
+    console.error('[IPC get-ticket-by-date] Error fetching tickets by date:', error);
+    return { status: 500, error: error.message }; // Or return an empty array or an error object
+  }
+});
+
+// *****************
+// Application code (Printing, Menus, etc.)
+// *****************
+async function openMenuDialog(browserWindow) {
+  const result = await dialog.showOpenDialog(browserWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'json file', extensions: ['json'] }]
+  });
+
+  if (result.canceled || result.filePaths.length === 0) return;
+
+  const [filePath] = result.filePaths;
+  try {
+    const content = await readFile(filePath, { encoding: 'utf-8' });
+    if (browserWindow && !browserWindow.isDestroyed() && browserWindow.webContents && !browserWindow.webContents.isDestroyed()) {
+      browserWindow.webContents.send('menu-file-opened', content);
+    } else {
+      console.warn('[Main Process] openMenuDialog: Target window or webContents no longer valid for sending menu-file-opened.');
+    }
+  } catch (error) {
+    console.error(`[Main Process] Error reading menu file ${filePath}:`, error);
+    dialog.showErrorBox("File Error", `Could not read the menu file: ${error.message}`);
+  }
+}
+
+ipcMain.on('open-menu-dialog', (event) => {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!browserWindow) {
+    console.warn('[Main Process] open-menu-dialog: Could not find BrowserWindow from sender.');
+    return;
+  }
+  openMenuDialog(browserWindow);
+});
+
+// *****************
+// PRINTING
+// *****************
+ipcMain.handle('print-ticket', async (e, data) => {
+  console.log('[Main Process] Handling print-ticket IPC call.');
+  const result = await printTicket(e, data);
+  return result;
+});
+
+ipcMain.handle('print-kitchen', async (e, data) => {
+  console.log('[Main Process] Handling print-kitchen IPC call.');
+  const result = await printKitchen(e, data);
+  return result;
+});
+
+ipcMain.handle('print-sale', async (e, data) => {
+  console.log('[Main Process] Handling print-sale IPC call.');
+  const result = await printSale(e, data);
+  return result;
+});
+
+// *****************
+// MENUS
+// *****************
+const menuTemplate = [
+  {
+    label: app.name,
+    submenu: [
+      {
+        label: 'Importar carta',
+        click: () => {
+          let targetWindow = BrowserWindow.getFocusedWindow();
+          if (!targetWindow && mainWindow && !mainWindow.isDestroyed()) {
+            targetWindow = mainWindow;
+          }
+          if (targetWindow) {
+            openMenuDialog(targetWindow);
+          } else {
+            console.warn('[Main Process] Importar carta: No suitable window to open dialog for.');
+          }
+        }
+      },
+      { type: 'separator' },
+      { label: 'Recargar', role: 'reload' },
+      { label: 'Forzar Recarga', role: 'forceReload' },
+      { label: 'Alternar Herramientas de Desarrollo', role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'minimize' },
+      { type: 'separator' },
+      { role: 'quit' }
+    ]
+  },
+  {
+    label: 'Edit',
+    submenu: [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { role: 'selectAll' }
+    ]
+  }
+];
+
+if (process.platform === 'darwin') {
+  const appMenu = menuTemplate.find(m => m.label === app.name) || menuTemplate[0];
+  if (appMenu && appMenu.submenu) {
+    appMenu.submenu.unshift(
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' }
+    );
+  } else if (appMenu) {
+    appMenu.submenu = [ // Fallback if submenu was somehow undefined
+      { role: 'about' },
+      { type: 'separator' },
+      { role: 'services' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'unhide' },
+      { type: 'separator' },
+      { role: 'quit' }
+    ];
+  }
+}
+
+const menu = Menu.buildFromTemplate(menuTemplate);
+Menu.setApplicationMenu(menu);
+
+
+
+================================================
+FILE: src/preload.js
+================================================
+// src/preload.js
+console.log('[Preload Script] Attempting to execute preload.js...'); // First line
+
+import { ipcRenderer, contextBridge } from 'electron';
+
+console.log('[Preload Script] Imports successful. Attempting to expose API.');
+
+try {
+  contextBridge.exposeInMainWorld('api', {
+    // Menu handling
+    openMenuDialog: () => ipcRenderer.send('open-menu-dialog'),
+    onMenuOpened: (callback) => {
+      const handler = (event, content) => callback(content);
+      ipcRenderer.on('menu-file-opened', handler);
+      return () => {
+        ipcRenderer.removeListener('menu-file-opened', handler);
+      };
+    },
+    importUpdateMenu: async (encryptedBase64Menu) => await ipcRenderer.invoke('import-update-menu', encryptedBase64Menu),
+
+    // Data fetching
+    getCategories: async () => await ipcRenderer.invoke('get-categories'),
+    getProducts: async () => await ipcRenderer.invoke('get-products'),
+
+    // For tickets page
+    getTicketsByDate: async (dateString) => await ipcRenderer.invoke('get-ticket-by-date', dateString),
+    getTicketById: async (ticketId) => await ipcRenderer.invoke('get-ticket-by-id', ticketId),
+    cancelTicketById: async (ticketId) => await ipcRenderer.invoke('cancel-ticket-by-id', ticketId),
+
+    // For reportes page
+    getDailySalesByMonth: async (dateString) => await ipcRenderer.invoke('get-daily-sales-by-month', dateString),
+    getDailySaleReportById: async (saleId) => await ipcRenderer.invoke('get-daily-sale-report-by-id', saleId),
+    exportDailySaleById: async (saleId) => await ipcRenderer.invoke('export-daily-sale-by-id', saleId),
+
+    // For updateDailySales in Nav.svelte
+    getSaleByDate: async (dateString) => await ipcRenderer.invoke('get-daily-sale-by-date', dateString),
+    updateDailySalesReport: async (dateString) => await ipcRenderer.invoke('update-daily-sales-report', dateString),
+
+    // Printing
+    printTicket: async (data) => await ipcRenderer.invoke('print-ticket', data),
+    printKitchen: async (data) => await ipcRenderer.invoke('print-kitchen', data),
+    printSale: async (data) => await ipcRenderer.invoke('print-sale', data)
+  });
+  console.log('[Preload Script] contextBridge.exposeInMainWorld("api", ...) SUCCEEDED.'); // Success log
+} catch (error) {
+  console.error('[Preload Script] contextBridge.exposeInMainWorld FAILED:', error); // Error log
+}
+
+// Your existing log, which is good:
+// console.log('[Preload Script] window.api has been exposed.'); // This will only be true if the above try block succeeded.
+
+
+
+================================================
+FILE: src/printing/printKitchen.js
+================================================
+import escpos from 'escpos'
+import escposNetwork from 'escpos-network'
+escpos.Network = escposNetwork;
+
+
+export default async function printKitchen(event, data) {
+  // ************************************
+  // Print Data
+  // ************************************
+  const { ticket, details, printerIP } = data;
+  const time = new Date(ticket.date).toLocaleTimeString()
+
+
+  // ************************************
+  // Printing orders
+  // ************************************
+
+  try {
+    const device = new escpos.Network(printerIP);
+    const printer = new escpos.Printer(device);
+
+    // Wait for the device to open
+    await new Promise((resolve, reject) => {
+      device.open((deviceError) => {
+        if (deviceError) {
+          console.error('Printer error:', deviceError);
+          reject(new Error(`Printer error: ${deviceError.message}`));
+          return;
+        }
+        resolve();
+      });
+    });
+
+    // Print data
+    printer
+      .font('B')
+      .text('-'.repeat(32))
+      // COMANDA
+      .font('A')
+      .size(1, 1)
+      .align('CT')
+      .text('COMANDA')
+      //line
+      .font('B')
+      .text('-'.repeat(32))
+      // ORDER
+      .align('RT')
+      .size(2, 2)
+      .text(time)
+      //line
+      .font('B')
+      .size(1, 1)
+      .text('-'.repeat(32))
+
+    details.forEach((item) => {
+      if (item.quantity < 10) {
+        item.quantity = '0' + item.quantity
+      }
+      printer
+        .font('A')
+        .align('LT')
+        .style('NORMAL')
+        .size(1, 1)
+        .lineSpace(45)
+        .text(`${item.quantity} | ${item.product.name}`)
+        .feed(1);
+    });
+
+    printer
+      .font('B')
+      .size(1, 1)
+      .text('-'.repeat(32))
+      .feed(4)
+
+    // Close
+    await new Promise((resolve) => {
+      printer.cut().close(() => {
+        console.log('Kitchen print completed.');
+        resolve();
+      });
+    });
+
+    return { success: true, message: 'kitchen print completed' }
+  } catch (error) {
+    return { success: false, message: error.message }
+  }
+}
+
+
+================================================
+FILE: src/printing/printSale.js
+================================================
+import escpos from 'escpos'
+import escposNetwork from 'escpos-network'
+
+import path from 'path'
+
+escpos.Network = escposNetwork;
+
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default async function printSale(event, data) {
+  console.log('printSale')
+  const logoPath = path.resolve(__dirname, '../../static/img/chibi_logo-print.png');
+
+  // ************************************
+  // Print Data
+  // ************************************
+  console.log('data: ', data)
+
+  const { sale, printerIP } = data
+
+  const {
+    cash,
+    card,
+    total_sales,
+    net_sales,
+    average_ticket,
+    ticket_count,
+    canceled_count,
+    discount_amount,
+    date,
+    id
+  } = sale
+
+  const cashLabel = 'efectivo:'
+  const cashAmount = `$${cash.toFixed(2)}`
+  const cashPadding = 20 - cashAmount.length - cashLabel.length
+
+  const cardLabel = 'tarjeta:'
+  const cardAmount = `$${card.toFixed(2)}`
+  const cardPadding = 20 - cardAmount.length - cardLabel.length
+
+  const totalLabel = 'SUBTOTAL:'
+  const totalSales = `$${total_sales.toFixed(2)}`
+  const totalSalesPadding = 20 - totalSales.length - totalLabel.length
+
+  const discountLabel = 'descuentos:'
+  const discountAmount = `$${discount_amount.toFixed(2)}`
+  const discountPadding = 32 - discountAmount.length - discountLabel.length
+
+  const ticketCountLabel = 'transacciones:'
+  const ticketCount = ticket_count.toString()
+  const ticketCountPadding = 32 - ticketCountLabel.length - ticketCount.length
+
+  const cancelCountLabel = 'cancelaciones:'
+  const cancelCount = canceled_count.toString()
+  const cancelCountPadding = 32 - cancelCountLabel.length - cancelCount.length
+
+  const netLabel = 'TOTAL:'
+  const netSales = `$${net_sales.toFixed(2)}`
+  const netSalesPadding = 20 - netSales.length - netLabel.length
+
+  const avTicketLabel = 'ticket promedio:'
+  const avTicket = `$${average_ticket.toFixed(2)}`
+  const avTicketPadding = 32 - avTicketLabel.length - avTicket.length
+
+  // ************************************
+  // Printing orders
+  // ************************************
+  try {
+    const device = new escpos.Network(printerIP);
+    const printer = new escpos.Printer(device);
+
+    const image = await new Promise((resolve, reject) => {
+      escpos.Image.load(logoPath, (img) => {
+        if (!img) {
+          reject(new Error('Failed to load image'))
+        } else {
+          resolve(img)
+        }
+      })
+    })
+
+    await new Promise((resolve, reject) => {
+      device.open((deviceError) => {
+        if (deviceError) {
+          console.error('Printer error: ', deviceError)
+          reject(new Error(`Printer error: ${deviceError.message}`))
+        }
+        resolve()
+      })
+    })
+
+    await printer
+      .align('CT')
+      .image(image, 'd24')
+
+    printer
+      .font('B')
+      .size(1, 1)
+      .text('-'.repeat(32))
+      .size(2, 2)
+      .text('CORTE DE CAJA')
+      .size(1, 1)
+      .text('-'.repeat(32))
+      .feed(1)
+      .size(2, 2)
+      .text(`${date}`)
+      .feed(1)
+      .align('lt')
+      .size(0, 0)
+      .font('a')
+      .text(`id: ${id}`)
+      .size(1, 1)
+      .font('b')
+      .text('-'.repeat(32))
+      .feed(1)
+      .size(2, 2)
+      .style('NORMAL')
+      .text(`${cashLabel}${' '.repeat(cashPadding)}${cashAmount}`)
+      .feed(2)
+      .text(`${cardLabel}${' '.repeat(cardPadding)}${cardAmount}`)
+      .feed(2)
+      .style('b')
+      .text(`${netLabel}${' '.repeat(netSalesPadding)}${netSales}`)
+      .feed(1)
+      .size(1, 1)
+      .text('-'.repeat(32))
+      .text(`${ticketCountLabel}${' '.repeat(ticketCountPadding)}${ticketCount}`)
+      .feed(1)
+      .text(`${cancelCountLabel}${' '.repeat(cancelCountPadding)}${cancelCount}`)
+      .feed(1)
+      .text(`${avTicketLabel}${' '.repeat(avTicketPadding)}${avTicket}`)
+      .text('-'.repeat(32))
+      .size(0, 0)
+      .feed(1)
+      .font('A')
+      .align('CT')
+      .text(`cr: ${new Date().toLocaleString('es-ES')}`)
+      .feed(4)
+
+    // end
+    await new Promise((resolve) => {
+      printer
+        .cut()
+        .close(() => {
+          resolve()
+        })
+    })
+
+    return { success: true, message: 'sale print completed' }
+  } catch (error) {
+    console.error('Print failed: ', error)
+    return { success: false, message: error.message }
+  }
+}
+
+
+
+================================================
+FILE: src/printing/printTicket.js
+================================================
+import escpos from 'escpos'
+import escposNetwork from 'escpos-network'
+import escposUSB from 'escpos-usb'
+// import usb from 'usb'
+
+import path from 'path'
+escpos.USB = escposUSB
+escpos.Network = escposNetwork;
+
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default async function printTicket(event, data) {
+  const logoPath = path.resolve(__dirname, '../../static/img/chibi_logo-print.png');
+  // ************************************
+  // Print Data
+  // ************************************
+  const { ticket, details, printerIP } = data;
+
+  const time = new Date(ticket.date).toLocaleTimeString()
+  const date = new Date(ticket.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  const timeRowPadding = 32 - time.length - date.length
+
+  const minRows = 6
+  const detailPaddingRows = details.length >= minRows ? 0 : (minRows - details.length) * 2
+
+  const order = 320
+  const totalText = 'TOTAL:'
+  const totalAmount = `$${ticket.total_amount.toFixed(2)}`
+  const totalRowPadding = 32 - totalAmount.length - totalText.length
+
+  const discountRate = `-${Number(ticket.discount_rate * 100)}%`
+  const discountAmount = `-$${ticket.discount_amount.toFixed(2)}`
+  const subtotalAmount = `$${ticket.subtotal.toFixed(2)}`
+
+  const cardAmount = `$${ticket.card.toFixed(2)}`
+  const cardLabel = 'tarjeta:'
+  const cardPadding = 48 - cardAmount.length - cardLabel.length
+
+  const receivedCashAmount = `$${ticket.cash_received.toFixed(2)}`
+  const cashLabel = 'efectivo:'
+  const cashPadding = 48 - receivedCashAmount.length - cashLabel.length
+
+  const changeAmount = `$${ticket.change.toFixed(2)}`
+  const changeLabel = 'CAMBIO:'
+  const changePadding = 32 - changeAmount.length - changeLabel.length
+
+  console.log('Resolved Image Path:', logoPath);
+
+  // ************************************
+  // Printing orders
+  // ************************************
+  try {
+
+    // const devices = usb.getDeviceList()
+    // console.log('devices: ', devices)
+
+
+    function getPrinter() {
+      const devices = escpos.USB.findPrinter()
+
+      if (devices && devices.length > 0) {
+        const device = new escpos.USB()
+        return new escpos.Printer(device)
+      } else {
+        const device = new escpos.Network(printerIP)
+        return new escpos.Printer(device)
+      }
+    }
+
+    // const device = new escpos.Network(printerIP);
+    // const printer = new escpos.Printer(device);
+
+    const printer = getPrinter()
+
+    const image = await new Promise((resolve, reject) => {
+      escpos.Image.load(logoPath, (img) => {
+        if (!img) {
+          reject(new Error('Failed to load image'))
+        } else {
+          resolve(img)
+        }
+      })
+    })
+
+    await new Promise((resolve, reject) => {
+      device.open((deviceError) => {
+        if (deviceError) {
+          console.error('Printer error: ', deviceError)
+          reject(new Error(`Printer error: ${deviceError.message}`))
+        }
+        resolve()
+      })
+    })
+
+    await printer
+      .align('CT')
+      .image(image, 'd24')
+
+    printer
+      .feed(1)
+      // Order
+      .font('B')
+      .size(1, 1)
+      .align('LT')
+      .style('B')
+      .text(`Orden: ${order}`)
+      // Line
+      .text('-'.repeat(32))
+      // Time
+      .style('NORMAL')
+      .text(`${date}${' '.repeat(timeRowPadding)}${time}`)
+      // Line
+      .text('-'.repeat(32))
+      .feed(1)
+
+    // Print ticket details
+    details.forEach(detail => {
+      printer
+        .font('A')
+        .style('NORMAL')
+        .size(0, 0)
+        .lineSpace(45)
+        .tableCustom([
+          { text: `${detail.quantity}  `, align: 'RIGHT', width: 0.1 },
+          { text: detail.product.name, align: 'LEFT', width: 0.5 },
+          { text: `$${detail.price}`, align: 'RIGHT', width: 0.2 },
+          { text: `$${detail.price * detail.quantity}`, align: 'RIGHT', width: 0.2 }
+        ])
+        .feed(0)
+    });
+    for (let i = 0; i < detailPaddingRows; i++) {
+      printer.feed(1)
+    }
+    // spacing
+    printer.feed(1)
+    printer
+      .font('B')
+      .size(1, 1)
+      .text('-'.repeat(32))
+    // disount
+    if (ticket.discount_amount > 0) {
+      printer
+        .font('B')
+        .style('NORMAL')
+        .align('RT')
+        .size(1, 1)
+        .text(`${subtotalAmount}`)
+        .feed(1)
+        .text(`${discountRate}: ${discountAmount}`)
+        .feed(1)
+    }
+    // total
+    printer
+      .font('B')
+      .style('B')
+      .size(1, 1)
+      .text(`${totalText}${' '.repeat(totalRowPadding)}${totalAmount}`)
+      .text('-'.repeat(32))
+
+    // cash
+    if (ticket.cash > 0) {
+      printer
+        .style('NORMAL')
+        .font('A')
+        .size(0, 0)
+        .text(`${cardLabel}${' '.repeat(cardPadding)}${cardAmount}`)
+        .feed(1)
+        .text(`${cashLabel}${' '.repeat(cashPadding)}${receivedCashAmount}`)
+        .feed(1)
+        .style('B')
+        .font('B')
+        .size(1, 1)
+        .text(`${changeLabel}${' '.repeat(changePadding)}${changeAmount}`)
+        .feed(1)
+    } else {
+      printer
+        .style('NORMAL')
+        .font('A')
+        .align('CT')
+        .size(0, 0)
+        .text('pago con tarjeta')
+        .feed(1)
+    }
+
+    const catWithEars = `
+  /\\_/\\  
+  (=^o^=)  
+  (  __  )  
+  `;
+    printer
+      .feed(2)
+      .align('CT')
+      .style('b')
+      .text(catWithEars)
+
+    // Arigato
+    printer
+      .font('A')
+      .size(0, 0)
+      .align('CT')
+      .style('NORMAL')
+      .text('arigato')
+      .feed(2)
+      .text('')
+
+    // end
+    await new Promise((resolve) => {
+      printer
+        .cut()
+        .close(() => {
+          console.log('ticket print completed')
+          resolve()
+        })
+    })
+
+    return { success: true, message: 'ticket print completed' }
+
+  } catch (error) {
+    console.error('Print failed: ', error)
+    // throw error
+    return { success: false, message: 'Error imprimiendo' }
+  }
+}
+
+
+
+================================================
+FILE: src/renderer/app/app.html
+================================================
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
+
+
+
+================================================
+FILE: src/renderer/app/index.css
+================================================
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: auto;
+  max-width: 38rem;
+  padding: 2rem;
+}
+
+
+
+================================================
+FILE: src/renderer/app/package.json
+================================================
+{
+  "type": "module"
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/index.js
+================================================
+// place files you want to import through the `$lib` alias in this folder.
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/ActionButton.svelte
+================================================
+<script>
+	import { slide } from 'svelte/transition';
+	import cancelIcon from '$lib/img/icons/cancel.svg'
+
+	let {
+		action,
+		ready,
+		imgSrc,
+		imgAlt,
+		readyImg,
+		readyAlt,
+		flexBasis,
+		text = '',
+		disabled = false,
+		goback = false,
+		promise = null
+	} = $props();
+
+	let errorState = $state(false);
+
+	$effect(() => {
+		if (!promise) {
+			errorState = false; // Reset if no promise
+			return;
+		}
+		promise
+			.then(response => {
+				errorState = !response.success; 
+			})
+			.catch(() => {
+				errorState = true;
+			});
+	});
+</script>
+
+<button class="{ready && !goback ? 'ready' : ''} {errorState ? 'error' : ''}" onclick={action} style:--flexBasis={flexBasis} {disabled}>
+	{#if promise}
+		{#await promise}
+			<p in:slide={{ duration: 200 }}
+					 >awaiting</p>
+		{:then response}
+			{#if response.success}
+				<p in:slide={{ duration: 200 }}>{response.success}</p>
+			{:else}
+					<img
+					in:slide={{ duration: 200 }}
+					out:slide={{ duration: 200 }}
+					src={cancelIcon}
+					alt=cancelar
+					draggable="false"
+				/>
+			{/if}
+		{/await}
+	{:else}
+		{#if imgSrc}
+			{#if ready}
+				<img
+					in:slide={{ duration: 200 }}
+					out:slide={{ duration: 200 }}
+					src={readyImg}
+					alt={readyAlt}
+					draggable="false"
+				/>
+			{:else}
+				<img
+					in:slide={{ duration: 200 }}
+					out:slide={{ duration: 200 }}
+					src={imgSrc}
+					alt={imgAlt}
+					draggable="false"
+				/>
+			{/if}
+		{:else}
+			<p>{text}</p>
+		{/if}
+	{/if}
+</button>
+
+
+
+<style lang="scss">
+	button {
+		position: relative;
+		background-color: var(--color-accent);
+		border-radius: var(--panel-border);
+		font-size: 1.5em;
+		font-family: var(--font-titles);
+		text-align: center;
+		color: var(--color-bg);
+		flex-basis: var(--flexBasis);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+		height: var(--button-height);
+		padding: 0.5em 1em;
+		transition: 0.5s ease;
+
+		&:disabled {
+			background-color: var(--color-light);
+		}
+
+		&.ready {
+			background-color: var(--color-ready);
+		}
+
+		&.error {
+			background-color: red;
+		}
+
+		img {
+			position: absolute;
+			top: 50%;
+			left: 0;
+			height: calc(100% - 0.75em);
+			transform: translateY(-50%);
+			width: 100%;
+			object-fit: contain;
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/Calendar.svelte
+================================================
+<script>
+	import { onMount } from 'svelte';
+
+	// Changed from bindable to a regular prop that expects a function
+	let { tickets: updateParentTickets } = $props();
+
+	const labels = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
+	let selectedDate = $state(new Date());
+	const today = new Date();
+	const currentMonth = today.getMonth();
+	const currentYear = today.getFullYear();
+	let selectedMonth = $state(today.getMonth());
+	let selectedYear = $state(today.getFullYear());
+	let monthName = $derived(
+			new Date(selectedYear, selectedMonth).toLocaleString('es', { month: 'long' })
+	);
+	let days = $state([]);
+
+	function generateDays(year, month) {
+		days = [];
+		const firstDay = new Date(year, month, 1);
+		let lastDay = new Date(year, month + 1, 0);
+		const mondayStart = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+		let nofuture = false;
+		if (year === currentYear && month === currentMonth) {
+			lastDay = new Date(); // Only show up to today for the current month
+			nofuture = true;
+		}
+		const totalDaysInMonth = lastDay.getDate();
+
+		// padding days from previous month
+		const prevMonthLastDay = new Date(year, month, 0).getDate();
+		for (let i = mondayStart - 1; i >= 0; i--) {
+			days.push({
+				day: prevMonthLastDay - i,
+				current: false,
+				month: month - 1 < 0 ? 11 : month -1, // handle year wrap for month
+				year: month - 1 < 0 ? year -1 : year
+			});
+		}
+		// current month days
+		for (let i = 1; i <= totalDaysInMonth; i++) {
+			days.push({
+				day: i,
+				current: true,
+				month: month,
+				year: year,
+				today: i === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+			});
+		}
+		// padding future days (only if not current month and year)
+		if (!nofuture) {
+			let remainingDays = 42 - days.length; // Assuming a 6x7 grid
+			for (let i = 1; i <= remainingDays; i++) {
+				days.push({
+					day: i,
+					current: false,
+					month: month + 1 > 11 ? 0 : month + 1, // handle year wrap for month
+					year: month + 1 > 11 ? year + 1 : year
+				});
+			}
+		}
+		// Ensure days array has 42 items for a consistent 6x7 grid, if needed for styling
+		while (days.length < 42 && nofuture) {
+			const lastDayInArray = days[days.length -1];
+			const nextDayDate = new Date(lastDayInArray.year, lastDayInArray.month, lastDayInArray.day + 1);
+			if (nextDayDate.getFullYear() === currentYear && nextDayDate.getMonth() === currentMonth && nextDayDate.getDate() > today.getDate()) {
+				// Stop adding future days of the current month beyond today
+				break;
+			}
+			days.push({
+				day: nextDayDate.getDate(),
+				current: false,
+				month: nextDayDate.getMonth(),
+				year: nextDayDate.getFullYear(),
+			});
+		}
+		return days;
+	}
+
+	async function changeMonths(offset) {
+		const newDate = new Date(selectedYear, selectedMonth + offset, 1);
+		if (newDate.getFullYear() > currentYear || (newDate.getFullYear() === currentYear && newDate.getMonth() > currentMonth)) {
+			return; // Don't go into future months
+		}
+		selectedMonth = newDate.getMonth();
+		selectedYear = newDate.getFullYear();
+		generateDays(selectedYear, selectedMonth);
+		// Fetch tickets for the first day of the new month
+		await selectDate({ day: 1, month: selectedMonth, year: selectedYear, current: true });
+	}
+
+	async function selectDate(dayObj) {
+		selectedDate = new Date(dayObj.year, dayObj.month, dayObj.day);
+		const dateString = `${dayObj.year}-${('0' + (dayObj.month + 1)).slice(-2)}-${('0' + dayObj.day).slice(-2)}`;
+
+		if (window.api && typeof window.api.getTicketsByDate === 'function') {
+			try {
+				const fetchedTickets = await window.api.getTicketsByDate(dateString);
+				if (fetchedTickets && !fetchedTickets.error) {
+					if (typeof updateParentTickets === 'function') {
+						updateParentTickets(fetchedTickets); // Call the callback
+					} else {
+						console.warn("Calendar: updateParentTickets is not a function");
+					}
+				} else {
+					console.error("Error fetching tickets via IPC from Calendar:", fetchedTickets?.error || "Unknown error");
+					if (typeof updateParentTickets === 'function') updateParentTickets([]);
+				}
+			} catch (ipcError) {
+				console.error("IPC call to getTicketsByDate from Calendar failed:", ipcError);
+				if (typeof updateParentTickets === 'function') updateParentTickets([]);
+			}
+		} else {
+			console.warn('[Calendar.svelte] window.api.getTicketsByDate is not available.');
+			if (typeof updateParentTickets === 'function') updateParentTickets([]);
+		}
+	}
+
+	onMount(async () => {
+		generateDays(selectedYear, selectedMonth);
+		// Fetch tickets for the initially selected date (today)
+		await selectDate({ day: today.getDate(), month: today.getMonth(), year: today.getFullYear(), current: true });
+	});
+</script>
+
+<div class="calendar">
+	<div class="header">
+		<div class="month">
+			<button onclick={() => changeMonths(-1)} aria-label="Previous month">-</button>
+			<div class="text">
+				<p class="title">{monthName}</p>
+				<p class='year'>{selectedYear}</p>
+			</div>
+			<button onclick={() => changeMonths(1)} aria-label="Next month"
+					disabled={selectedYear === currentYear && selectedMonth === currentMonth}>+</button>
+		</div>
+		<div class="labels">
+			{#each labels as label}
+				<div class="day-label"> <!-- Changed class for clarity -->
+					<p>{label}</p>
+				</div>
+			{/each}
+		</div>
+	</div>
+	<div class="body">
+		{#each days as dayObj (dayObj.year + '-' + dayObj.month + '-' + dayObj.day + '-' + dayObj.current)}
+			<button
+					class="day square {dayObj.today ? 'today' : ''} {!dayObj.current ? 'notcurrent' : ''} {selectedDate.getDate() === dayObj.day && selectedDate.getMonth() === dayObj.month && selectedDate.getFullYear() === dayObj.year ? 'selected':''}"
+					onclick={() => dayObj.current && selectDate(dayObj)}
+					disabled={!dayObj.current || (dayObj.year === currentYear && dayObj.month === currentMonth && dayObj.day > today.getDate())}
+					aria-label={`Select date ${dayObj.day} ${new Date(dayObj.year, dayObj.month).toLocaleString('es', { month: 'long' })} ${dayObj.year}`}
+			>
+				<p>{dayObj.day}</p>
+			</button>
+		{/each}
+	</div>
+</div>
+
+<style lang="scss">
+	.calendar {
+		margin-top: 5em; // This seems large, consider reducing or making it a variable
+
+		.header {
+			.month {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 1em; // Added some space
+
+				button {
+					background-color: var(--color-accent);
+					width: 3em; // Reduced width
+					height: 2em; // Increased height for better clickability
+					border-radius: 8px;
+					color: var(--color-bg);
+					font-size: 1em; // Ensure font size is appropriate
+
+					&:disabled {
+						background-color: var(--color-light);
+						opacity: 0.5;
+						cursor: not-allowed;
+					}
+				}
+
+				.text {
+					line-height: 1.2; // Adjusted line height
+					text-align: center; // Center month/year text
+
+					.title {
+						margin-bottom: 0.25em; // Slight space between month and year
+						font-size: 1.2em; // Make month name a bit larger
+					}
+
+					.year {
+						font-family: var(--font-titles);
+					}
+				}
+			}
+
+			.labels {
+				display: grid;
+				grid-template-columns: repeat(7, 1fr);
+				text-align: center; // Center day labels
+				margin-bottom: 0.5em; // Space before days grid
+			}
+
+			.day-label { // Changed from .day to avoid conflict
+				font-weight: 700;
+				color: var(--color-text-secondary);
+			}
+		}
+
+		.body {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.5em; // Added gap between day buttons
+		}
+
+		.square { // This class seems to be applied to day buttons
+			aspect-ratio: 1 / 1;
+		}
+
+		.day { // Styles for individual day buttons
+			width: 100%;
+			text-align: center;
+			align-content: center; // For flex/grid items if button becomes a container
+			border-radius: 4px;
+			color: var(--color-text);
+			transition: background-color 0.3s ease, color 0.3s ease; // Smoother transition
+			border: 1px solid transparent; // Placeholder for focus styles
+
+			&:hover:not(:disabled) {
+				background-color: var(--color-hover);
+			}
+			&:focus-visible {
+				outline: 2px solid var(--color-accent);
+				border-color: var(--color-accent);
+			}
+
+
+			p {
+				text-align: center; // Ensure text within p is centered
+			}
+
+			&.today {
+				font-weight: bold;
+				border: 1px solid var(--color-accent); // Highlight today
+			}
+
+			&.selected {
+				background-color: var(--color-accent);
+				p {
+					color: var(--color-bg);
+					font-weight: 700;
+				}
+			}
+
+			&.notcurrent {
+				color: var(--color-text-secondary);
+				opacity: 0.6; // Slightly more visible than 0.5
+				pointer-events: none; // Make non-current month days unclickable
+			}
+			&:disabled:not(.notcurrent) { // Style for disabled current month future days
+				opacity: 0.5;
+				cursor: not-allowed;
+				background-color: transparent; // Or a specific disabled color
+				color: var(--color-text-secondary);
+			}
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/Cash.svelte
+================================================
+<script>
+	import { slide, fly, fade, blur } from 'svelte/transition';
+	import { commitSale } from '$lib/scripts/sale.js';
+
+	// Components
+	import confirmIcon from '$lib/img/icons/confirm.svg';
+	import bill50 from '$lib/img/bill-50.jpg';
+	import bill100 from '$lib/img/bill-100.jpg';
+	import bill200 from '$lib/img/bill-200.jpg';
+	import bill500 from '$lib/img/bill-500.jpg';
+	import { cart } from '../stores/shared.svelte.js';
+	// Data
+	let { total, ready = $bindable(), discountRate, reset } = $props();
+	let cash = $state(0);
+	let card = $state(0);
+	let received = $derived(cash + card);
+	let pending = $derived(total > received ? total - received : 0);
+	let change = $derived(received - total < 0 ? 0 : received - total);
+
+	function numpadPress(key) {
+		cash = cash.toString();
+		cash += key;
+		cash = parseFloat(cash);
+	}
+
+	function deleteAmounts() {
+		cash = 0
+		card = 0
+	}
+
+	function formatInput(e, value) {
+		const number = Number(value)
+		e.target.value = number
+	}
+
+	async function processPayment() {
+		if (received < total) {
+			return;
+		} else {
+			let actualCash = cash
+			let actualCard = card
+			let actualChange = 0
+
+			if(cash > 0 && received >= total) {
+				actualChange = change
+
+				if(card > 0) {
+					actualCard = total - (cash - actualChange)
+				}
+			} else if (cash > 0 && received < total) {
+				throw new Error('Insufficient payment')
+			}
+
+			const payment = await commitSale(cart, total, actualCash - actualChange, actualCard, discountRate, actualChange, actualCash);
+			if (payment.status == 200) {
+				ready = false;
+				cart.length = 0;
+				reset()
+			} else {
+				throw new Error('failed to commit sale')
+			}
+		}
+	}
+
+	function billPayment(value) {
+		cash = value;
+		processPayment();
+	}
+</script>
+
+{#snippet numkey(number)}
+	<button onclick={() => numpadPress(number)}>{number}</button>
+{/snippet}
+
+{#snippet bill(value, src)}
+	<button class="bill" disabled={value < total} onclick={() => billPayment(value)}>
+		<img {src} alt="billete de {value}" />
+	</button>
+{/snippet}
+
+<div class="cash" transition:fly={{ y: 50, duration: 300 }}>
+	<div class="cash--header">
+		<div class="row">
+			<div class="field">
+				<p class="label">tarjeta</p>
+				<input bind:value={card} type="number" name="tarjeta" oninput={(e) => {formatInput(e, card)}} />
+			</div>
+			<div class="field">
+				<p class="label">efectivo</p>
+				<input bind:value={cash} type="number" name="efectivo" oninput={(e) => {formatInput(e, cash)}}/>
+			</div>
+		</div>
+		<div class="row">
+			<p class="label">total</p>
+			<p class="amount">{total % 1 !== 0 ? total.toFixed(2) : total}</p>
+		</div>
+		<div class="row">
+			<p class="label">pendiente</p>
+			<p class="amount {pending > 0 ? 'accent' : ''}">{pending % 1 !== 0 ? pending.toFixed(2) : pending}</p>
+		</div>
+		<div class="row">
+			<p class="label">cambio</p>
+			<p class="amount change {change > 0 ? 'accent' : ''}">{change % 1 !== 0 ? change.toFixed(2) : change}</p>
+		</div>
+	</div>
+	<div class="cash--body">
+		<div class="bills">
+			{@render bill(50, bill50)}
+			{@render bill(100, bill100)}
+			{@render bill(200, bill200)}
+			{@render bill(500, bill500)}
+		</div>
+		<div class="numpad">
+			{@render numkey('7')}
+			{@render numkey('8')}
+			{@render numkey('9')}
+			{@render numkey('4')}
+			{@render numkey('5')}
+			{@render numkey('6')}
+			{@render numkey('1')}
+			{@render numkey('2')}
+			{@render numkey('3')}
+			{@render numkey('0')}
+			<button class="double" onclick={deleteAmounts}>borrar</button>
+		</div>
+	</div>
+	<div class="cash--footer">
+		<button class="confirmBtn" disabled={pending > 0} onclick={processPayment}>
+			<img src={confirmIcon} alt="confirmar" />
+		</button>
+	</div>
+</div>
+
+<style lang="scss">
+	.cash {
+		position: absolute;
+		left: calc(-100% - 2em);
+		top: 0em;
+		height: calc(100% - 0em);
+		width: 400px;
+		width: 100%;
+		background: linear-gradient(var(--color-panel1), var(--color-panel2));
+		border-radius: var(--panel-border);
+		padding: var(--panel-padding);
+		padding-bottom: 1em;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+
+		&--header {
+			.row {
+				font-size: 1.5em;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 0.75rem;
+				gap: 2em;
+			}
+
+			.label {
+				color: var(--color-text-secondary);
+				font-weight: 300;
+				flex-basis: 50%;
+				font-size: 1.25rem;
+			}
+
+			.amount {
+				padding: 0.25rem 1rem;
+				flex-basis: 50%;
+				border-radius: 50px;
+				border: solid rgb(96, 96, 96) 1px;
+				text-align: right;
+				font-family: var(--font-numbers);
+				&.accent {
+					color: var(--color-accent);
+				}
+
+				&.change {
+					border: solid white 1px;
+					border: none;
+					font-weight: 700;
+				}
+			}
+
+			.field {
+				.label {
+					font-size: 1rem;
+					margin-bottom: 0.5rem;
+				}
+			}
+
+			input[type='number'] {
+				-moz-appearance: textfield; /* Firefox */
+				appearance: textfield;
+				color: var(--color-text);
+				font-family: var(--font-numbers);
+				font-size: 1em;
+				width: 100%;
+				padding: 0.25rem 1rem;
+				border-radius: 50px;
+				background-color: #383c42;
+				text-align: right;
+				box-shadow:
+					1px 1px 2px rgba(90, 96, 106, 0.3),
+					-1px -1px 2px rgba(22, 24, 26, 0.5),
+					inset -1px 1px 2px rgba(22, 24, 26, 0.2),
+					inset 1px -1px 2px rgba(22, 24, 26, 0.2),
+					inset -1px -1px 2px rgba(90, 96, 106, 0.9),
+					inset 1px 1px 3px rgba(22, 24, 26, 0.9);
+
+				&::-webkit-inner-spin-button,
+				&::-webkit-outer-spin-button {
+					-webkit-appearance: none;
+					margin: 0;
+				}
+			}
+		}
+
+		&--body {
+			display: flex;
+			gap: 2em;
+			justify-content: space-between;
+
+			.bills {
+				.bill {
+					height: 4em;
+					margin-bottom: 1em;
+
+					&:last-of-type {
+						margin-bottom: 0;
+					}
+
+					&:disabled {
+						position: relative;
+						// border: solid red;
+
+						&::before {
+							content: '';
+							position: absolute;
+							top: 0;
+							left: 0;
+							height: 100%;
+							width: 100%;
+							background-color: var(--color-darker);
+							opacity: 0.8;
+						}
+					}
+
+					img {
+						height: 100%;
+						object-fit: contain;
+					}
+				}
+			}
+
+			.numpad {
+				display: grid;
+				width: fit-content;
+				grid-template-columns: repeat(3, 1fr);
+				column-gap: 1rem;
+				row-gap: 1rem;
+				height: fit-content;
+
+				button {
+					font-family: var(--font-titles);
+					font-size: 1.25em;
+					color: var(--color-accent);
+					height: var(--button-height);
+					width: var(--button-height);
+					border-radius: var(--panel-border);
+					background: #3b4046;
+					box-shadow:
+						5px 5px 10px #32363c,
+						-5px -5px 10px #444a51;
+					transition: all 0.2s ease;
+
+					&.double {
+						width: calc(var(--button-height) * 2 + 1em);
+						grid-column: span 2;
+					}
+				}
+			}
+		}
+
+		&--footer {
+			display: flex;
+			justify-content: flex-end;
+
+			.confirmBtn {
+				display: block;
+				width: 150px;
+				// width: calc(var(--button-height) * 2 + 2em);
+				border-radius: var(--panel-border);
+				height: var(--button-height);
+				background-color: var(--color-ready);
+				padding: 0.5em 1em;
+				transition: 0.5s ease;
+
+				&:disabled {
+					background-color: var(--color-light);
+				}
+
+				img {
+					height: 100%;
+					width: 100%;
+					object-fit: contain;
+				}
+			}
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/CatMenu.svelte
+================================================
+<script>
+	import { selectedCat } from '../stores/shared.svelte.js';
+	let { cats } = $props();
+	import { invalidateAll } from '$app/navigation';
+
+</script>
+
+<div class="catmenu">
+	{#each cats as cat}
+		<button onclick={() => selectedCat.cat = cat.id} class='{selectedCat.cat === cat.id ? 'selected' : ''}'>{cat.name}</button>
+	{/each}
+</div>
+
+<style lang="scss">
+	.catmenu {
+		padding: var(--panel-padding);
+		background: linear-gradient(var(--color-panel1), var(--color-panel2));
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+	}
+
+	button {
+		height: var(--button-height);
+		display: block;
+		border-radius: 15px;
+		font-family: var(--font-titles);
+		font-size: 1.125em;
+		letter-spacing: 0.5px;
+		width: 100%;
+		padding: 0em 1em;
+		color: var(--color-accent);
+		color: var(--color-light);
+		color: var(--color-text-secondary);
+		border-radius: 15px;
+		background: #3b4046;
+		box-shadow:
+			5px 5px 10px #32363c,
+			-5px -5px 10px #444a51;
+		transition: all 0.2s ease;
+
+		&.selected,
+		&:hover,
+		&:active,
+		&:focus {
+			background: rgb(59, 64, 70);
+			box-shadow:
+			rgb(42, 46, 50) 5.8px 5.8px 17px 0px inset,
+			rgb(84, 91, 99) -5.8px -5.8px 17px 0px inset;
+		}
+
+		&:hover {
+			color: var(--color-light);
+		}
+
+		&.selected {
+			color: var(--color-accent);
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/Display.svelte
+================================================
+<script>
+	// import { fade, fly } from 'svelte/transition';
+	import Product from '$lib/components/Product.svelte';
+
+	let { filteredProducts } = $props();
+</script>
+
+<ul class="display">
+	{#each filteredProducts as product}
+		<Product {product} />
+	{/each}
+</ul>
+
+<style lang="scss">
+	.display {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		grid-template-rows: min-content;
+		grid-auto-flow: dense;
+		column-gap: 1.5em;
+		row-gap: 1.5em;
+		overflow-y: auto;
+		padding: 1em var(--panel-padding);
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/Nav.svelte
+================================================
+<script>
+	import {printerConfig} from '../stores/shared.svelte.js'
+
+	async function changeTicketDate() {
+		const response = await fetch('/api/ticket', {
+			method: 'PATCH',
+			headers: {'Content-Type': 'application/json'}
+		})
+		const result = await response.json()
+		console.log('change date result: ', result)
+	}
+
+
+	async function updateDailySales() {
+  console.log('updating DailySales')
+  let updatedSales = false
+  // Date
+  const targetDate = new Date()
+  let dateString
+  let count = 0
+
+  while (updatedSales === false) {
+    targetDate.setDate(targetDate.getDate() - 1)
+    dateString = targetDate.toISOString().split('T')[0]
+    count++
+    const request = await fetch(`/api/sale?date=${dateString}`)
+    const response = await request.json()
+
+    if (response.sale) {
+      updatedSales = true
+      break
+    }
+
+    const formattedDay = targetDate.toLocaleDateString('en-US', { day: '2-digit' })
+    const formattedMonth = targetDate.toLocaleDateString('en-US', { month: '2-digit' })
+    const formattedYear = targetDate.getFullYear()
+
+    const ticketRequest = await fetch(`/api/ticket?date=${formattedYear}-${formattedMonth}-${formattedDay}`)
+    const tickets = await ticketRequest.json()
+
+    if (tickets.length > 0) {
+      const update = await fetch(`/api/update-sales?date=${targetDate}`)
+      const updateResult = await update.json()
+      console.log('updateResult: ', updateResult)
+      updatedSales = true
+      break
+    }
+
+    if (count == 365) {
+      console.log('no sales for the past year')
+      break
+    }
+  }
+}
+
+function togglePrinterConfig() {
+	printerConfig.visible = !printerConfig.visible
+}
+</script>
+
+<nav>
+	<ul class="links">
+		<a href="/">Venta</a>
+		<a href="/tickets">Tickets</a>
+		<a href="/reportes">Reportes</a>
+	</ul>
+
+	<ul class="buttons">
+		<button onclick={updateDailySales}>actualizar reportes</button>
+		<button onclick={togglePrinterConfig}>IP impresora</button>
+	</ul>
+
+</nav>
+
+<style lang="scss">
+	nav {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 2em;
+		height: var(--nav-height);
+		background-color: var(--color-darker);
+	}
+
+	ul {
+		display: flex;
+		gap: 2em;
+	}
+
+	button {
+		color: var(--color-light);
+		border: solid var(--color-light) 1px;
+		color: var(--color-text-secondary);
+		border: solid 1px;
+		border-color: var(--color-text-secondary);
+		border-radius: 8px;
+		padding: 0.5em 1em;
+		cursor: pointer;
+	}
+
+	a {
+		padding: 0.5em 1em;
+		cursor: pointer;
+		border-radius: 8px;
+		border: solid var(--color-light) 1px;
+		color: var(--color-light);
+		border: solid var(--color-text-secondary) 1px;
+		color: var(--color-text-secondary);
+		min-width: 8em;
+		text-align: center;
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/Order.svelte
+================================================
+<script>
+	// Utils
+	import { slide, fly, fade } from 'svelte/transition';
+	import { commitSale } from '$lib/scripts/sale.js';
+	// Components
+	import confirmIcon from '$lib/img/icons/confirm.svg';
+	import returnIcon from '$lib/img/icons/return.svg';
+	import resetIcon from '$lib/img/icons/reset.svg';
+	import cardIcon from '$lib/img/icons/card.svg';
+	import cashIcon from '$lib/img/icons/cash.svg';
+	import Cash from '$lib/components/Cash.svelte';
+	import OrderItem from '$lib/components/OrderItem.svelte';
+	import ActionButton from './ActionButton.svelte';
+	// Data
+	import { cart } from '../stores/shared.svelte.js';
+
+	let subtotal = $derived(
+		cart.reduce((acc, item) => {
+			const price = parseFloat(item.price);
+			const quantity = parseFloat(item.quantity);
+			return acc + price * quantity;
+		}, 0)
+	);
+
+	let discounted = $state(false);
+	let discountInput = $state(0);
+	let discountRate = $derived(discountInput / 100);
+	let discountAmount = $derived(Math.round(subtotal * discountRate * 100) / 100);
+
+	let total = $derived(subtotal - discountAmount);
+
+	let readyForCardPayment = $state(false);
+	let readyForCashPayment = $state(false);
+
+	function reset() {
+		readyForCashPayment = false;
+		readyForCardPayment = false;
+		discounted = false;
+		discountInput = 0;
+		cart.length = 0;
+	}
+
+	function handleDiscount() {
+		if (discounted) {
+			discountInput = 0;
+			discounted = false;
+		} else {
+			discounted = true;
+		}
+	}
+
+	function formatDiscount(e) {
+		const number = Number(discountInput);
+		const clamped = Math.max(0, Math.min(100, Math.floor(number)));
+		discountInput = clamped;
+		e.target.value = discountInput;
+	}
+
+	function handleCashBtn() {
+		if (readyForCardPayment) {
+			readyForCardPayment = false;
+			return;
+		}
+		if (!readyForCashPayment) {
+			readyForCashPayment = true;
+		} else {
+			readyForCashPayment = false;
+		}
+	}
+
+	async function handleCardBtn() {
+		if (readyForCashPayment) {
+			readyForCashPayment = false;
+			return;
+		}
+		if (!readyForCardPayment) {
+			readyForCardPayment = true;
+		} else {
+			const cardSale = await commitSale(cart, total, 0, total, discountRate, 0, 0);
+			if (cardSale.status == 200) {
+				reset();
+			}
+		}
+	}
+</script>
+
+<div class="order">
+	<div class="panel">
+		<div class="panel--header">
+			<p>cantidad</p>
+			<p>producto</p>
+			<p>precio</p>
+			<p>importe</p>
+		</div>
+
+		<div class="panel--body {cart.length < 1 ? 'empty' : ''}">
+			{#if cart.length > 0}
+				<div class="container" transition:fade={{ duration: 200 }}>
+					{#if readyForCashPayment}
+						<Cash {total} bind:ready={readyForCashPayment} {discountRate} {reset} />
+					{/if}
+					<button class="circle reset" onclick={reset}>
+						<img src={resetIcon} alt="Borrar" />
+					</button>
+					<ul class={['order--items', { discounted }]} in:slide out:fade>
+						{#each cart as item (item.id)}
+							<OrderItem {item} />
+						{/each}
+					</ul>
+					<footer>
+						{#if discounted}
+							<div class="discount">
+								<div class="discount--row">
+									<p class="discount--label">subtotal</p>
+									<p class="discount--amount">{subtotal}</p>
+								</div>
+								<div class="discount--row">
+									<p class="discount--label">descuento</p>
+									<div class="discount--input">
+										<input
+											bind:value={discountInput}
+											type="number"
+											min="0"
+											max="100"
+											oninput={formatDiscount}
+										/>
+										<p class="discount--input__sign">%</p>
+									</div>
+									<p class="discount--amount">
+										{discountAmount % 1 !== 0 ? discountAmount.toFixed(2) : discountAmount}
+									</p>
+								</div>
+							</div>
+						{/if}
+						<div class="summary">
+							<p class="summary--label">Total</p>
+							<p class="summary--amount">{total % 1 !== 0 ? total.toFixed(2) : total}</p>
+						</div>
+
+						<div class="buttonRow">
+							<ActionButton
+							readyImg={returnIcon}
+							readyAlt='cancelar'
+							imgSrc={cashIcon}
+							imgAlt='efectivo'
+							flexBasis='50%'
+							bind:ready={readyForCashPayment}
+							action={handleCashBtn}
+							goback=true
+							/>
+							<ActionButton
+							readyImg={confirmIcon}
+							readyAlt='confirmar'
+							imgSrc={cardIcon}
+							imgAlt='tarjeta'
+							flexBasis='50%'
+							bind:ready={readyForCardPayment}
+							action={handleCardBtn}
+							/>
+							<ActionButton
+							flexBasis='15%'
+							action={handleDiscount}
+							text='%'
+							ready={discounted}
+							/>
+						</div>
+
+					</footer>
+				</div>
+			{/if}
+		</div>
+	</div>
+</div>
+
+<style lang="scss">
+	.order {
+		background-color: var(--color-bg);
+		padding: var(--panel-padding);
+		padding: 2em var(--panel-padding);
+		height: 100%;
+	}
+
+	.panel {
+		height: 100%;
+		max-height: 100%;
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1.5em 1fr;
+
+		&--header {
+			display: grid;
+			grid-template-columns: 6em 6em 1fr 1fr 3em;
+			gap: 0.5rem;
+			padding: 0 1rem;
+			color: var(--color-text-secondary);
+			font-weight: 300;
+			font-size: 0.8em;
+
+			p {
+				text-align: right;
+
+				&:first-of-type {
+					text-align: center;
+				}
+			}
+		}
+
+		&--body {
+			position: relative;
+			padding: 1em;
+			background: linear-gradient(var(--color-panel1), var(--color-panel2));
+			height: 100%;
+			border-radius: var(--panel-border);
+			transition: 0.3s ease;
+
+			&.empty {
+				opacity: 0.1;
+			}
+
+			.container {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+			}
+
+			.reset {
+				position: absolute;
+				top: -1em;
+				right: -1em;
+			}
+		}
+	}
+
+	.order--items {
+		max-height: 440px;
+		position: relative;
+		padding-right: 4px;
+		overflow-y: scroll;
+
+		&.discounted {
+			max-height: 358px;
+		}
+
+		&::-webkit-scrollbar {
+			width: 0.5em;
+		}
+
+		&::-webkit-scrollbar-track {
+			background: linear-gradient(var(--color-panel1), var(--color-panel2));
+			width: 1em;
+			border-radius: 50px;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			background-color: var(--color-thead);
+			width: 0.5em;
+			border-radius: 50px;
+		}
+	}
+
+	footer {
+		.discount {
+			padding-top: 1em;
+
+			&--row {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 1em;
+			}
+
+			&--label {
+				color: var(--color-text-secondary);
+			}
+
+			&--input {
+				display: flex;
+				gap: 0.5em;
+
+				input[type='number'] {
+					-moz-appearance: textfield; /* Firefox */
+					appearance: textfield;
+					color: var(--color-text);
+					font-family: var(--font-numbers);
+					font-size: 1em;
+					width: 5em;
+					padding: 0.25rem 1rem;
+					border-radius: 50px;
+					background-color: #383c42;
+					text-align: right;
+					box-shadow:
+						1px 1px 2px rgba(90, 96, 106, 0.3),
+						-1px -1px 2px rgba(22, 24, 26, 0.5),
+						inset -1px 1px 2px rgba(22, 24, 26, 0.2),
+						inset 1px -1px 2px rgba(22, 24, 26, 0.2),
+						inset -1px -1px 2px rgba(90, 96, 106, 0.9),
+						inset 1px 1px 3px rgba(22, 24, 26, 0.9);
+
+					&::-webkit-inner-spin-button,
+					&::-webkit-outer-spin-button {
+						-webkit-appearance: none;
+						margin: 0;
+					}
+				}
+
+				&__sign {
+					color: var(--color-accent);
+					font-family: var(--font-titles);
+					font-size: 2em;
+				}
+			}
+
+			&--amount {
+				padding: 0.25rem 1rem;
+				width: 6em;
+				border-radius: 50px;
+				border: solid rgb(96, 96, 96) 1px;
+				text-align: right;
+				font-family: var(--font-numbers);
+			}
+		}
+
+		.summary {
+			display: flex;
+			justify-content: space-between;
+			font-size: 2em;
+			padding: 1rem 0;
+
+			&--label {
+				color: var(--color-text-secondary);
+			}
+
+			&--amount {
+				font-weight: 700;
+				font-family: var(--font-numbers);
+			}
+		}
+
+		.buttonRow {
+			display: flex;
+			justify-content: space-between;
+			gap: 1em;
+
+
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/OrderItem.svelte
+================================================
+<script>
+	import plusIcon from '$lib/img/icons/plus.svg';
+	import deleteIcon from '$lib/img/icons/delete.svg';
+	import { cart } from '../stores/shared.svelte.js';
+	import { slide, fly, fade } from 'svelte/transition';
+
+	let { item } = $props();
+
+	function addOne(item) {
+		const oldItem = cart.find((existingItem) => existingItem.id === item.id);
+		oldItem.quantity++;
+	}
+
+	function deleteItem(item) {
+		const index = cart.findIndex((thing) => thing.id === item.id);
+		if (index !== -1) {
+			cart.splice(index, 1); // Mutate the array
+		}
+	}
+</script>
+
+<li class="item" transition:slide>
+	<div class="field">
+		<button class="circle" onclick={() => addOne(item)}>
+			<img src={plusIcon} alt="más" draggable="false" />
+		</button>
+		{#key item.quantity}
+			<p in:fly={{ y: 15 }} class="qty">{item.quantity}</p>
+		{/key}
+	</div>
+	<div class="field">
+		<p class="lineitem">{item.name}</p>
+	</div>
+	<div class="field currency">
+		<p>{item.price}</p>
+	</div>
+	<div class="field currency">
+		{#key item.quantity}
+			<p in:fly={{ y: 15 }}>{item.price * item.quantity}</p>
+		{/key}
+	</div>
+	<div class="field">
+		<button class="circle" onclick={() => deleteItem(item)}>
+			<img src={deleteIcon} alt="eliminar" />
+		</button>
+	</div>
+</li>
+
+<style lang="scss">
+	.item {
+		position: relative;
+		display: grid;
+		grid-template-columns: auto 6em 1fr 1fr auto;
+		gap: 1em;
+		padding: 1em 0;
+		border-bottom: solid var(--color-accent) 1px;
+
+		&:last-of-type {
+			border-bottom: none;
+		}
+
+		.field {
+			display: flex;
+			align-items: center;
+
+			&.currency {
+				justify-content: flex-end;
+				font-family: var(--font-numbers);
+			}
+
+			.qty {
+				width: 3em;
+				text-align: center;
+				font-family: var(--font-numbers);
+			}
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/PrinterConfig.svelte
+================================================
+<script>
+  import ActionButton from './ActionButton.svelte';
+  import saveIcon from '$lib/img/icons/save.svg'
+	import confirmIcon from '$lib/img/icons/confirm.svg';
+  import {printerConfig } from '../stores/shared.svelte.js'
+	import { fly } from 'svelte/transition';
+
+
+  let printerIP = $state()
+  let ipReady = $state(false)
+
+  function changeIP() {
+    if(!ipReady) {
+      ipReady = true
+      return
+    } else {
+      printerConfig.ip = printerIP
+      ipReady = false
+    }
+  }
+</script>
+
+
+<div class="printerConfig" transition:fly={{y: 30, duration: 500}}>
+  <div class="panel">
+    <p class="title">IP impresora</p>
+
+    <div class="buttonRow">
+      <input type="text" bind:value={printerIP} placeholder={printerConfig.ip}>
+      <ActionButton
+      imgSrc={saveIcon}
+      imgAlt='guardar'
+      readyImg={confirmIcon}
+      readyAlt='confirmar'
+      bind:ready={ipReady}
+      action={changeIP}
+      />
+    </div>
+  </div>
+
+</div>
+
+<style lang="scss">
+  .printerConfig {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    height: 200px;
+    width: 300px;
+    transform: translate(-50%, -50%);
+
+    .panel {
+      background: linear-gradient(var(--color-panel1), var(--color-panel2));
+      border-radius: var(--panel-border);
+      min-height: 200px;
+      padding: 1em 1em;
+    }
+
+    input {
+				-moz-appearance: textfield; /* Firefox */
+				appearance: textfield;
+				color: var(--color-text);
+				font-family: var(--font-numbers);
+				font-size: 1em;
+				width: 100%;
+				padding: 0.25rem 1rem;
+				border-radius: 50px;
+				background-color: #383c42;
+				text-align: right;
+				box-shadow:
+					1px 1px 2px rgba(90, 96, 106, 0.3),
+					-1px -1px 2px rgba(22, 24, 26, 0.5),
+					inset -1px 1px 2px rgba(22, 24, 26, 0.2),
+					inset 1px -1px 2px rgba(22, 24, 26, 0.2),
+					inset -1px -1px 2px rgba(90, 96, 106, 0.9),
+					inset 1px 1px 3px rgba(22, 24, 26, 0.9);
+		}
+
+    .buttonRow {
+      display: flex;
+      gap: 1em;
+    }
+  }
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/Product.svelte
+================================================
+<script>
+	import { cart } from '../stores/shared.svelte.js';
+	import { fly, fade } from 'svelte/transition';
+
+	let { product } = $props();
+
+	let inCart = $derived(cart.some((item) => item.id === product.id));
+	let cartQty = $derived.by(() => {
+		const cartItem = cart.find((item) => item.id === product.id);
+		return cartItem ? cartItem.quantity : 0;
+	});
+
+	function addToCart() {
+		if (inCart) {
+			const cartItem = cart.find((item) => item.id == product.id);
+			cartItem.quantity++;
+		} else {
+			product.quantity = 1;
+			cart.push(product);
+		}
+	}
+</script>
+
+<li class="product" in:fly={{ y: 20, duration: 200 }} out:fade={{ duration: 200 }}>
+	<button onclick={addToCart}>
+		{#if product.image}
+			<img src={`/img/products/${product.image}`} alt={product.name} draggable="false" />
+		{:else}
+			<p>{product.name}</p>
+		{/if}
+	</button>
+	{#if cartQty}
+		<div class="quantity" transition:fly={{ y: 15, duration: 200 }}>
+			{#key cartQty}
+				<p in:fly={{ y: 15 }}>{cartQty}</p>
+			{/key}
+		</div>
+	{/if}
+	<p>{product.name}</p>
+</li>
+
+<style lang="scss">
+	.product {
+		height: max-content;
+		position: relative;
+
+		button {
+			border-radius: 8px;
+			height: 6.25em;
+			background-color: var(--color-light);
+			width: 100%;
+			margin-bottom: 0.5em;
+			overflow: hidden;
+			padding: 0.5em;
+
+			p {
+				color: var(--color-bg);
+				font-weight: 700;
+			}
+
+			img {
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+				color: var(--color-bg);
+				font-family: var(--font-text);
+				font-size: 0.9em;
+				font-weight: 600;
+			}
+		}
+
+		.quantity {
+			--size: 2em;
+			position: absolute;
+			bottom: -0rem;
+			right: -0.25em;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: var(--color-accent);
+			border-radius: 50%;
+			height: var(--circle-size);
+			width: var(--circle-size);
+
+			p {
+				font-size: 1.125em;
+				font-weight: 700;
+				color: var(--color-bg);
+				text-align: center;
+				font-family: var(--font-numbers);
+			}
+			// padding: 0.5rem;
+			// height: var(--circle-size);
+		}
+
+		p {
+			font-size: 0.8em;
+			line-height: 1;
+			font-weight: 300;
+			color: var(--color-light);
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/components/TicketItem.svelte
+================================================
+<script>
+	let { ticketItem } = $props();
+	const { product, quantity, price } = ticketItem;
+	let extPrice = quantity * price;
+</script>
+
+<li class="item">
+	<div class="field currency">
+		<p class="lineitem">{quantity}</p>
+	</div>
+	<div class="field">
+		<p class="lineitem">{product.name}</p>
+	</div>
+	<div class="field currency">
+		<p class="lineitem">{price}</p>
+	</div>
+	<div class="field currency">
+		<p class="lineitem">{extPrice}</p>
+	</div>
+</li>
+
+<style lang="scss">
+	.item {
+		display: flex;
+		justify-content: space-between;
+		gap: 1em;
+		padding: 1em 0;
+		border-bottom: solid var(--color-accent) 1px;
+
+		&:last-of-type {
+			border-bottom: none;
+		}
+
+		.field {
+			display: flex;
+			align-items: center;
+			flex-basis: 20%;
+			// border: solid green thin;
+
+			&:first-of-type {
+				flex-basis: 10%;
+			}
+
+			&:nth-of-type(2) {
+				flex-basis: 70%;
+				margin-left: 1em;
+			}
+
+			&.currency {
+				justify-content: flex-end;
+				font-family: var(--font-numbers);
+			}
+		}
+	}
+</style>
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/associations.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/associations.js
+
+// This function will be called from main.js after all models have been defined.
+export function setupAssociations(sequelize) {
+    // Destructure models from the sequelize instance for easier access.
+    // The keys here (e.g., 'product', 'cat_product') must match the
+    // first argument given to sequelize.define() in your model definition files.
+    const {
+        product,
+        cat_product,
+        ticket,
+        ticket_details,
+        daily_sales,
+        daily_sales_details
+    } = sequelize.models;
+
+    // --- Product and CatProduct ---
+    // A Product belongs to a CatProduct (Category)
+    // A CatProduct (Category) can have many Products
+    if (product && cat_product) {
+        cat_product.hasMany(product, {
+            foreignKey: 'catproduct_id', // This must match the FK column in the 'product' table
+            as: 'products' // Optional alias for when you query CatProduct and include Products
+        });
+        product.belongsTo(cat_product, {
+            foreignKey: 'catproduct_id',
+            as: 'category' // Optional alias for when you query Product and include its Category
+        });
+        console.log('[Associations] Product <-> CatProduct associations set up.');
+    } else {
+        console.warn('[Associations] Could not set up Product <-> CatProduct associations. One or both models undefined.');
+    }
+
+    // --- Ticket and TicketDetails ---
+    // A Ticket can have many TicketDetails
+    // A TicketDetail belongs to one Ticket
+    if (ticket && ticket_details) {
+        ticket.hasMany(ticket_details, {
+            foreignKey: 'ticket_id',
+            as: 'details'
+        });
+        ticket_details.belongsTo(ticket, {
+            foreignKey: 'ticket_id',
+            as: 'ticketHeader' // Renamed from 'ticket' to avoid conflict if TicketDetails model was named 'ticket'
+        });
+        console.log('[Associations] Ticket <-> TicketDetails associations set up.');
+    } else {
+        console.warn('[Associations] Could not set up Ticket <-> TicketDetails associations. One or both models undefined.');
+    }
+
+
+    // --- TicketDetails and Product ---
+    // A TicketDetail belongs to one Product (representing the item sold)
+    // A Product can appear in many TicketDetails
+    if (ticket_details && product) {
+        // Note: A Product can have many TicketDetails, but a TicketDetail belongs to one Product.
+        // The foreign key 'product_id' is in ticket_details.
+        product.hasMany(ticket_details, {
+            foreignKey: 'product_id',
+            as: 'ticketEntries' // Alias for Product to get all ticket line items it's part of
+        });
+        ticket_details.belongsTo(product, {
+            foreignKey: 'product_id',
+            as: 'productInfo' // Alias for TicketDetails to get the Product information
+        });
+        console.log('[Associations] TicketDetails <-> Product associations set up.');
+    } else {
+        console.warn('[Associations] Could not set up TicketDetails <-> Product associations. One or both models undefined.');
+    }
+
+    // --- DailySales and DailySalesDetails ---
+    // A DailySales record can have many DailySalesDetails
+    // A DailySalesDetail belongs to one DailySales record
+    if (daily_sales && daily_sales_details) {
+        daily_sales.hasMany(daily_sales_details, {
+            foreignKey: 'daily_sales_id',
+            as: 'details'
+        });
+        daily_sales_details.belongsTo(daily_sales, {
+            foreignKey: 'daily_sales_id',
+            as: 'summary'
+        });
+        console.log('[Associations] DailySales <-> DailySalesDetails associations set up.');
+    } else {
+        console.warn('[Associations] Could not set up DailySales <-> DailySalesDetails associations. One or both models undefined.');
+    }
+
+    // --- DailySalesDetails and Product ---
+    // A DailySalesDetail belongs to one Product
+    // A Product can appear in many DailySalesDetails
+    if (daily_sales_details && product) {
+        product.hasMany(daily_sales_details, {
+            foreignKey: 'product_id',
+            as: 'dailySaleEntries'
+        });
+        daily_sales_details.belongsTo(product, {
+            foreignKey: 'product_id',
+            as: 'productInfo'
+        });
+        console.log('[Associations] DailySalesDetails <-> Product associations set up.');
+    } else {
+        console.warn('[Associations] Could not set up DailySalesDetails <-> Product associations. One or both models undefined.');
+    }
+
+    console.log('[Associations] All associations processed.');
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/config.js
+================================================
+// src/renderer/app/lib/db/config.js
+import path from 'node:path'; // Or const path = require('node:path');
+import fs from 'node:fs';   // Or const fs = require('node:fs');
+
+// Removed: const Sequelize = require('sequelize'); (or import) - it will be passed in
+
+export function initializeSequelize(app, SequelizeConstructor) { // Accept SequelizeConstructor
+  const userDataPath = app.getPath('userData');
+  // It's good practice to put app-specific data in a subdirectory
+  const appDataDir = path.join(userDataPath, 'chibipos');
+
+  // Ensure the app-specific directory exists
+  if (!fs.existsSync(appDataDir)) {
+    fs.mkdirSync(appDataDir, { recursive: true });
+    console.log(`[db/config.js] Created directory: ${appDataDir}`);
+  }
+
+  const dbPath = path.join(appDataDir, 'database.sqlite');
+  console.log(`[db/config.js] Using database at: ${dbPath}`);
+
+  const sequelize = new SequelizeConstructor({
+    dialect: 'sqlite',
+    storage: dbPath,
+    logging: !app.isPackaged ? console.log : false, // Log SQL in dev, not in prod
+    // Add any other Sequelize options you need
+  });
+
+  async function testConnection() {
+    try {
+      await sequelize.authenticate();
+      console.log('[db/config.js] Database connection has been established successfully.');
+    } catch (error) {
+      console.error('[db/config.js] Unable to connect to the database:', error);
+      throw error; // Re-throw to be caught by the caller
+    }
+  }
+
+  return { sequelize, testConnection, dbPath };
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/models/catProduct.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/catProduct.js
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
+export function defineCatProduct(sequelize) { // Renamed from 'CatProduct' to 'defineCatProduct'
+  const CatProduct = sequelize.define('cat_product', { // Model name is 'cat_product'
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+  }, {
+    tableName: 'cat_product',
+    // timestamps: true, // Or false
+  });
+  return CatProduct;
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/models/daily_sales.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/daily_sales.js
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
+export function defineDailySales(sequelize) {
+  const DailySales = sequelize.define('daily_sales', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+    },
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00, // Good to have a default
+    },
+    net_sales: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    total_sales: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    average_ticket: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    ticket_count: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    canceled_count: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false, // Ensure it's not null if it has a default
+    },
+    cash: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    card: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    }
+  }, {
+    tableName: 'daily_sales',
+    // timestamps: true, // Consider adding timestamps if useful
+  });
+  return DailySales;
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/models/daily_salesDetails.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/daily_salesDetails.js
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
+export function defineDailySalesDetails(sequelize) {
+  const DailySalesDetails = sequelize.define('daily_sales_details', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+    },
+    date: {
+      type: DataTypes.DATEONLY,
+      // allowNull: false, // Typically date would be required here
+    },
+    product_id: {
+      type: DataTypes.UUID,
+      allowNull: false, // Usually a detail record must link to a product
+      references: {
+        model: 'product', // Model name string for Product
+        key: 'id'
+      }
+    },
+    daily_sales_id: {
+      type: DataTypes.UUID,
+      allowNull: false, // Usually a detail record must link to a daily_sales record
+      references: {
+        model: 'daily_sales', // Model name string for DailySales
+        key: 'id'
+      }
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    av_price: { // Consider renaming to average_price for clarity
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    net_sales: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00, // Good to have a default
+      allowNull: false,
+    }
+  }, {
+    tableName: 'daily_sales_details',
+    // timestamps: true,
+  });
+  return DailySalesDetails;
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/models/product.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/product.js
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
+
+// This function will be called by main.js, passing the initialized sequelize instance.
+// It's a good practice to also pass DataTypes if you want to centralize its import,
+// but importing it here is also fine as Sequelize will be a main project dependency.
+export function defineProduct(sequelize) {
+  const Product = sequelize.define('product', { // Use the passed sequelize instance
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true, // Ensure this uniqueness constraint is what you intend
+    },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true, // Explicitly set if images are optional
+    },
+    price: {
+      type: DataTypes.FLOAT, // For currency, DataTypes.DECIMAL(10, 2) is often preferred for precision
+      allowNull: false,    // Assuming price is mandatory
+    },
+    catproduct_id: { // Consider renaming to 'category_id' for convention
+      type: DataTypes.UUID,
+      allowNull: true, // Or false if a product must always have a category
+      references: {
+        // This refers to the model named 'cat_product'.
+        // This model must be defined on the same sequelize instance
+        // (e.g., by calling defineCatProduct(sequelize) in main.js)
+        // *before* this Product model is defined.
+        model: 'cat_product', // Use the model name as defined in catProduct.js's sequelize.define call
+        key: 'id',
+      }
+    },
+    status_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true, // Good practice to set a default
+      allowNull: false,
+    }
+  }, {
+    tableName: 'product',
+    // timestamps: true, // Set to true if you want createdAt and updatedAt columns
+    // underscored: true, // If you prefer snake_case for automatic fields (e.g., foreign keys, timestamps)
+  });
+
+  // Associations like Product.belongsTo(sequelize.models.cat_product, ...)
+  // will typically be defined in a separate associations.js file or
+  // directly in main.js after all models have been initialized.
+
+  return Product; // Return the defined model class
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/models/ticket.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/ticket.js
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
+
+export function defineTicket(sequelize) {
+  const Ticket = sequelize.define('ticket', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+    },
+    date: {
+      type: DataTypes.DATE, // Using DATE for timestamp precision
+      allowNull: false,
+      defaultValue: DataTypes.NOW, // Often useful to default to current time
+    },
+    cash: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    card: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    subtotal: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false, // Subtotal is usually required
+    },
+    discount_rate: {
+      type: DataTypes.DECIMAL(10, 2), // Or DataTypes.FLOAT if rate is fine as float
+      defaultValue: 0.00,
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    total_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false, // Total is usually required
+    },
+    canceled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
+    cash_received: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    change: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    // order_number: { // If you re-enable this, ensure it's handled
+    //   type: DataTypes.INTEGER,
+    //   autoIncrement: true, // If you want it to be an auto-incrementing order number
+    //   unique: true, // If each order number should be unique
+    //   allowNull: false, // If it's a key part of the ticket
+    // }
+  }, {
+    tableName: 'ticket',
+    // timestamps: true, // createdAt and updatedAt
+  });
+  return Ticket;
+}
+
+
+
+================================================
+FILE: src/renderer/app/lib/db/models/ticketDetails.js
+================================================
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/ticketDetails.js
+import sequelizePackage from 'sequelize';
+const { DataTypes } = sequelizePackage;
+
 
 export function defineTicketDetails(sequelize) {
   const TicketDetails = sequelize.define('ticket_details', {
