@@ -1,10 +1,6 @@
-export async function load({ fetch }) {
-
-  try {
-    const ticketRequest = await fetch(`/api/ticket?date=${new Date()}`)
-    const tickets = await ticketRequest.json()
-    return { tickets }
-  } catch (error) {
-    console.error('No tickets', error)
-  }
+export async function load() {
+  console.log('(tickets/+page.server.js) load function called');
+  return {
+    initialTickets: [] // Provide an empty array for SSR
+  };
 }
