@@ -4,7 +4,7 @@
 	import downloadIcon from '$lib/img/icons/download.svg';
 	import confirmIcon from '$lib/img/icons/confirm.svg';
 	import printIcon from '$lib/img/icons/print.svg';
-	import { printerConfig } from '../stores/shared.svelte.js'
+	import { printerConfig } from '../../lib/stores/shared.svelte.js'
 
 
 	let { data } = $props();

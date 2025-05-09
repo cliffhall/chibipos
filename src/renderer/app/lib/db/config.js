@@ -25,15 +25,8 @@ export function initializeSequelize(app, SequelizeConstructor) {
     dbPath = path.join(dbDir, 'database.sqlite');
     console.log(`[db/config.js] Using PRODUCTION database at: ${dbPath}`);
   } else {
-    // Development: Use a path in your project's root directory
-    // app.getAppPath() in dev usually points to your project root
     dbDir = app.getAppPath(); // This is your project root
     dbPath = path.join(dbDir, 'database.sqlite');
-    // No need to create dbDir here as it's the project root, which should exist.
-    // If you wanted a subfolder in dev, e.g., project_root/dev_db/, you'd add:
-    // dbDir = path.join(app.getAppPath(), 'dev_db');
-    // if (!fs.existsSync(dbDir)) { fs.mkdirSync(dbDir, { recursive: true }); }
-    // dbPath = path.join(dbDir, 'database.sqlite');
     console.log(`[db/config.js] Using DEVELOPMENT database at: ${dbPath}`);
   }
 
