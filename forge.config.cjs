@@ -39,7 +39,7 @@ module.exports = {
         build: [
           {
             // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-            entry: 'src/main.js',
+            entry: 'src/main/index.js',
             config: 'vite.main.config.mjs', // Correctly points to your main process Vite config
             target: 'main', // Likely an internal identifier for the plugin
           },

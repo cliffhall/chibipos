@@ -1,9 +1,9 @@
 <script>
   import ActionButton from './ActionButton.svelte';
   import saveIcon from '$lib/img/icons/save.svg'
-	import confirmIcon from '$lib/img/icons/confirm.svg';
+  import confirmIcon from '$lib/img/icons/confirm.svg';
   import {printerConfig } from '../stores/shared.svelte.js'
-	import { fly } from 'svelte/transition';
+  import { fly } from 'svelte/transition';
 
 
   let printerIP = $state()

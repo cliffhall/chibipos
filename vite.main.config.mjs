@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     outDir: '.vite/build', // Ensure this matches your setup
     lib: { // Ensure this is correctly configured for your main process entry
-      entry: 'src/main.js',
+      entry: 'src/main/index.js',
       formats: ['es'],
       fileName: (format) => `main.${format === 'es' ? 'js' : format}`,
     },
@@ -41,12 +41,12 @@ export default defineConfig({
         }),
       ],
     },
-    minify: false, // As per your previous config
+    minify: false,
   },
-  ssr: { // As per your previous config
+  ssr: {
     target: 'node',
   },
-  resolve: { // As per your previous config
+  resolve: {
     // conditions: ['node'],
   },
 });
