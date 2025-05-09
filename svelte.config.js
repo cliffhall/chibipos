@@ -26,7 +26,7 @@ const config = {
 			'$lib': 'src/renderer/app/lib/',
 		},
 		files: {
-			appTemplate: 'src/renderer/app/app.html',
+			appTemplate: 'index.html',
 			routes: 'src/renderer/app/routes',
 			lib: 'src/renderer/app/lib',
 		},
