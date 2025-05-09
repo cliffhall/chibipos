@@ -531,16 +531,14 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
         'product_id',
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('quantity')), 'sum_quantity'],
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('extended_price')), 'sum_extended_price'],
-        // VVVVVVVV  THIS IS THE LINE TO CHANGE VVVVVVVV
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('ticket_details.discount_amount')), 'sum_discount_amount'], // Specify ticket_details.discount_amount
-        // ^^^^^^^^  THIS IS THE LINE TO CHANGE ^^^^^^^^
         [sequelizeInstance.Sequelize.literal('SUM(ticket_details.price * ticket_details.quantity)'), 'sum_total_sale_gross'], // Also be explicit here for price and quantity
       ],
       include: [
         {
           model: dbModels.Ticket,
-          as: 'ticketHeader', // Ensure this alias matches your association definition
-          attributes: [], // No attributes needed from ticketHeader itself in the SELECT
+          as: 'ticketHeader',
+          attributes: [],
           where: {
             date: { [ResolvedOp.between]: [startISO, endISO] },
             canceled: false,
