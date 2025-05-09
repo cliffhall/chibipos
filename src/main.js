@@ -531,14 +531,16 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
         'product_id',
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('quantity')), 'sum_quantity'],
         [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('extended_price')), 'sum_extended_price'],
-        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('discount_amount')), 'sum_discount_amount'],
-        [sequelizeInstance.Sequelize.literal('SUM(price * quantity)'), 'sum_total_sale_gross'], // Gross sale before item discount
+        // VVVVVVVV  THIS IS THE LINE TO CHANGE VVVVVVVV
+        [sequelizeInstance.Sequelize.fn('SUM', sequelizeInstance.Sequelize.col('ticket_details.discount_amount')), 'sum_discount_amount'], // Specify ticket_details.discount_amount
+        // ^^^^^^^^  THIS IS THE LINE TO CHANGE ^^^^^^^^
+        [sequelizeInstance.Sequelize.literal('SUM(ticket_details.price * ticket_details.quantity)'), 'sum_total_sale_gross'], // Also be explicit here for price and quantity
       ],
       include: [
         {
           model: dbModels.Ticket,
           as: 'ticketHeader', // Ensure this alias matches your association definition
-          attributes: [],
+          attributes: [], // No attributes needed from ticketHeader itself in the SELECT
           where: {
             date: { [ResolvedOp.between]: [startISO, endISO] },
             canceled: false,
@@ -547,10 +549,10 @@ ipcMain.handle('update-daily-sales-report', async (event, dateString) => {
         {
           model: dbModels.Product,
           as: 'productInfo', // Ensure this alias matches your association definition
-          attributes: ['id', 'name']
+          attributes: ['id', 'name'] // Only select what's needed for GROUP BY or display
         }
       ],
-      group: ['ticket_details.product_id', 'productInfo.id', 'productInfo.name'], // Ensure all non-aggregated selected columns from productInfo are in group
+      group: ['ticket_details.product_id', 'productInfo.id', 'productInfo.name'], // Group by all non-aggregated selected columns
       raw: true,
       transaction
     });
