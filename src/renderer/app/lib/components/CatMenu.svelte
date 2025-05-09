@@ -1,5 +1,5 @@
 <script>
-	import { selectedCat } from '$lib/stores/shared.svelte';
+	import { selectedCat } from '$lib/stores/shared.svelte.js';
 	let { cats } = $props();
 	import { invalidateAll } from '$app/navigation';
 
@@ -37,7 +37,7 @@
 		background: #3b4046;
 		box-shadow:
 			5px 5px 10px #32363c,
-			-5px -5px 10px #444a51;	
+			-5px -5px 10px #444a51;
 		transition: all 0.2s ease;
 
 		&.selected,
@@ -49,7 +49,7 @@
 			rgb(42, 46, 50) 5.8px 5.8px 17px 0px inset,
 			rgb(84, 91, 99) -5.8px -5.8px 17px 0px inset;
 		}
-		
+
 		&:hover {
 			color: var(--color-light);
 		}

@@ -4,7 +4,7 @@
 	import downloadIcon from '$lib/img/icons/download.svg';
 	import confirmIcon from '$lib/img/icons/confirm.svg';
 	import printIcon from '$lib/img/icons/print.svg';
-	import { printerConfig } from '$lib/stores/shared.svelte'
+	import { printerConfig } from '$lib/stores/shared.svelte.js'
 
 
 	let { data } = $props();
@@ -29,7 +29,7 @@
 		const newMonth = selectedMonth + offset
 		if(newMonth > currentMonth && selectedYear === currentYear) return
 
-		selectedMonth += offset;		
+		selectedMonth += offset;
 			if(selectedMonth < 0)  {
 			selectedMonth = 11;
 			selectedYear--;

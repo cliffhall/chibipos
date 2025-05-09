@@ -2,7 +2,7 @@
   import ActionButton from './ActionButton.svelte';
   import saveIcon from '$lib/img/icons/save.svg'
 	import confirmIcon from '$lib/img/icons/confirm.svg';
-  import {printerConfig } from '$lib/stores/shared.svelte'
+  import {printerConfig } from '$lib/stores/shared.svelte.js'
 	import { fly } from 'svelte/transition';
 
 
@@ -24,13 +24,13 @@
 <div class="printerConfig" transition:fly={{y: 30, duration: 500}}>
   <div class="panel">
     <p class="title">IP impresora</p>
-    
+
     <div class="buttonRow">
       <input type="text" bind:value={printerIP} placeholder={printerConfig.ip}>
-      <ActionButton 
-      imgSrc={saveIcon} 
+      <ActionButton
+      imgSrc={saveIcon}
       imgAlt='guardar'
-      readyImg={confirmIcon} 
+      readyImg={confirmIcon}
       readyAlt='confirmar'
       bind:ready={ipReady}
       action={changeIP}

@@ -8,7 +8,7 @@
 	import bill100 from '$lib/img/bill-100.jpg';
 	import bill200 from '$lib/img/bill-200.jpg';
 	import bill500 from '$lib/img/bill-500.jpg';
-	import { cart } from '$lib/stores/shared.svelte';
+	import { cart } from '$lib/stores/shared.svelte.js';
 	// Data
 	let { total, ready = $bindable(), discountRate, reset } = $props();
 	let cash = $state(0);

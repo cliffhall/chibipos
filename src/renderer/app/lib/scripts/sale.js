@@ -1,5 +1,5 @@
 import { cart } from '$lib/stores/shared.svelte.js';
-import { printerConfig } from '$lib/stores/shared.svelte'
+import { printerConfig } from '$lib/stores/shared.svelte.js'
 
 export async function commitSale(cart, total, cash, card, discountRate, change, actualCash) {
 

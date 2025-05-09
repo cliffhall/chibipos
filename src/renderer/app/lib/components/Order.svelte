@@ -136,35 +136,35 @@
 							<p class="summary--label">Total</p>
 							<p class="summary--amount">{total % 1 !== 0 ? total.toFixed(2) : total}</p>
 						</div>
-			
+
 						<div class="buttonRow">
-							<ActionButton 
-							readyImg={returnIcon} 
-							readyAlt='cancelar' 
-							imgSrc={cashIcon} 
-							imgAlt='efectivo' 
+							<ActionButton
+							readyImg={returnIcon}
+							readyAlt='cancelar'
+							imgSrc={cashIcon}
+							imgAlt='efectivo'
 							flexBasis='50%'
 							bind:ready={readyForCashPayment}
 							action={handleCashBtn}
 							goback=true
 							/>
-							<ActionButton 
-							readyImg={confirmIcon} 
-							readyAlt='confirmar' 
-							imgSrc={cardIcon} 
-							imgAlt='tarjeta' 
+							<ActionButton
+							readyImg={confirmIcon}
+							readyAlt='confirmar'
+							imgSrc={cardIcon}
+							imgAlt='tarjeta'
 							flexBasis='50%'
 							bind:ready={readyForCardPayment}
 							action={handleCardBtn}
 							/>
-							<ActionButton 
+							<ActionButton
 							flexBasis='15%'
 							action={handleDiscount}
 							text='%'
 							ready={discounted}
 							/>
 						</div>
-						
+
 					</footer>
 				</div>
 			{/if}
@@ -342,7 +342,7 @@
 			justify-content: space-between;
 			gap: 1em;
 
-	
+
 		}
 	}
 </style>

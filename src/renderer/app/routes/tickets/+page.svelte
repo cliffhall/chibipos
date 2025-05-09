@@ -5,7 +5,7 @@
 	import cardIcon from '$lib/img/icons/card-yellow.svg';
 	import cashIcon from '$lib/img/icons/cash-yellow.svg';
 	import { fly, fade, slide } from 'svelte/transition';
-	import { printerConfig } from '$lib/stores/shared.svelte'
+	import { printerConfig } from '$lib/stores/shared.svelte.js'
 
 
 	let { data } = $props();
@@ -67,7 +67,7 @@
 		}
 	}
 
-	
+
 	let printPromise = $state(null)
 	let printTimeout = null
 	const successResetTime = 1000
@@ -96,7 +96,7 @@
 		if(cancelReady) {
 			printReady = false
 			cancelReady = false
-			return 
+			return
 		}
 		if(printReady) {
 			const printData = {ticket: currentTicket, details: ticketItems, printerIP: printerConfig.ip}
@@ -185,15 +185,15 @@
 							<p class="summary--amount">{currentTicket.total_amount}</p>
 						</div>
 						<div class="buttonRow">
-							<ActionButton 
-							action={cancelTicket} 
+							<ActionButton
+							action={cancelTicket}
 							text='cancelar'
 							flexBasis='50%'
 							ready={cancelReady}
 							disabled={currentTicket.canceled}
 							/>
-							<ActionButton 
-							action={handlePrint} 
+							<ActionButton
+							action={handlePrint}
 							text='imprimir'
 							flexBasis='50%'
 							ready={printReady}

@@ -11,6 +11,9 @@ const __dirname = path.dirname(__filename);
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	preprocess: [vitePreprocess()],
+	compilerOptions: {
+		runes: true
+	},
 	kit: {
 		adapter: adapter({
 			pages: '../../../.vite/renderer-static/pages',
@@ -20,12 +23,12 @@ const config = {
 			strict: true
 		}),
 		alias: {
-			'$lib': 'src/renderer/app/lib',
+			'$lib': 'src/renderer/app/lib/',
 		},
 		files: {
-			appTemplate: 'src/renderer/app/app.html', // Should look for src/renderer/app/app.html
-			routes: 'src/renderer/app/routes',        // Should look for src/renderer/app/routes/
-			lib: 'src/renderer/app/lib'               // Should look for src/renderer/app/lib/
+			appTemplate: 'src/renderer/app/app.html',
+			routes: 'src/renderer/app/routes',
+			lib: 'src/renderer/app/lib',
 		},
 		embedded:true,
 	},

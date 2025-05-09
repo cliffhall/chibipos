@@ -736,6 +736,41 @@ ipcMain.handle('delete-all-menu-data', async () => {
   }
 });
 
+// src/main.js
+// ... other ipcMain.handle calls ...
+
+ipcMain.handle('get-ticket-by-date', async (event, dateParam) => {
+  if (!dbModels.Ticket) {
+    console.error('[IPC get-ticket-by-date] Ticket model is not available.');
+    return { status: 500, error: 'Ticket model not initialized on server.' };
+  }
+  try {
+    // Assuming dateParam is in 'YYYY-MM-DD' format from the client
+    const targetDate = new Date(dateParam + 'T00:00:00.000Z');
+
+    const startOfDay = new Date(targetDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    console.log(`[IPC get-ticket-by-date] Searching for tickets between: ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
+
+    const tickets = await dbModels.Ticket.findAll({
+      where: {
+        date: {
+          [ResolvedOp.gte]: startOfDay,
+          [ResolvedOp.lte]: endOfDay,
+        },
+      },
+      order: [['date', 'DESC']], // Optional: order by date
+    });
+    return JSON.parse(JSON.stringify(tickets)); // Return the array of tickets
+  } catch (error) {
+    console.error('[IPC get-ticket-by-date] Error fetching tickets by date:', error);
+    return { status: 500, error: error.message }; // Or return an empty array or an error object
+  }
+});
 
 // *****************
 // Application code (Printing, Menus, etc.)

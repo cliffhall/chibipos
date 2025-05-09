@@ -14,7 +14,8 @@
     "dev": "electron-forge start",
     "prepare": "svelte-kit sync",
     "format": "prettier --write .",
-    "lint": "prettier --check . && eslint ."
+    "lint": "prettier --check . && eslint .",
+    "standalone": "npx vite dev src/renderer/app --config vite.renderer.config.mjs"
   },
   "keywords": [],
   "author": "guillermo",
@@ -45,7 +46,7 @@
     "globals": "^16.0.0",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.3",
-    "sass": "^1.86.0",
+    "sass": "^1.87.0",
     "svelte": "^5.0.0",
     "svelte-preprocess": "^6.0.3",
     "vite": "^6.0.0",
