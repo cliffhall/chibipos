@@ -12,7 +12,6 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "dev": "electron-forge start",
-    "prepare1": "cd src/renderer/app && svelte-kit sync && cd ../../..",
     "prepare": "svelte-kit sync",
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint ."

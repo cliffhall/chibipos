@@ -2,16 +2,30 @@
 // LAYOUT
 // *************************************
 
-export async function load({ fetch }) {
-  await import('$lib/db/sync.js');
+// /Users/cliffhall/Projects/chibipos/src/renderer/app/routes/+layout.server.js
+// import { CatProduct, Product } from '$lib/db/models'; // Hypothetical model import
+
+export async function load({ /* fetch might not be needed for these */ }) {
   console.log('load layout', new Date().toISOString());
-  const catRequest = await fetch('/api/catProduct')
-  const productRequest = await fetch('/api/product')
-  const cats = await catRequest.json()
-  const products = await productRequest.json()
-  // updateDailySales({ fetch })
-  return { cats, products };
+  try {
+    // const cats = await CatProduct.findAll(); // Example: Direct data access
+    // const products = await Product.findAll(); // Example: Direct data access
+
+    // Using dummy data for now if models are not set up for direct import yet
+    const cats = [{ id: 1, name: 'Sample Category Product' }];
+    const products = [{ id: 1, name: 'Sample Product' }];
+
+    // updateDailySales({ fetch }); // Keep fetch if updateDailySales needs it for other APIs
+    return { cats, products };
+  } catch (error) {
+    console.error('Error in layout load:', error);
+    // You might want to return an error structure or throw an error
+    // that SvelteKit can handle to show an error page.
+    // For now, returning empty or placeholder data:
+    return { cats: [], products: [], error: 'Failed to load layout data' };
+  }
 }
+
 
 // Generar reportes de venta
 // *************************************
