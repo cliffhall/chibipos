@@ -16,9 +16,9 @@ const config = {
 	kit: {
 		adapter: adapter({
 			// Align adapter output with Electron Forge's expected renderer path
-			pages: '.vite/renderer/main_window',    // Output HTML files here
-			assets: '.vite/renderer/main_window',   // Output static assets from kit.files.assets here
-			fallback: 'index.html', // Will create .vite/renderer/main_window/index.html
+			pages: path.resolve(__dirname, '.vite/renderer/main_window'),
+			assets: path.resolve(__dirname, '.vite/renderer/main_window'),
+			fallback: 'index.html',
 			precompress: false,
 			strict: true,
 		}),
@@ -26,17 +26,18 @@ const config = {
 			'$lib': path.resolve(__dirname, 'src/renderer/app/lib'),
 		},
 		files: {
-			appTemplate: 'index.html', // Using root index.html
+			appTemplate: 'index.html',
 			routes: 'src/renderer/app/routes',
 			lib: 'src/renderer/app/lib',
-			assets: 'src/renderer/app/static', // SvelteKit's source for static assets
+			assets: 'src/renderer/app/static',
 		},
 		embedded: true, // Important for Electron integration
 		paths: {
 			// SvelteKit's base path should be empty for Electron.
 			// Vite's `base: './'` in vite.renderer.config.mjs handles relative paths for production.
-			base: '',
+			base: ''
 		},
+		appDir: '_app', // Directive for browser to load assets from
 		prerender: {
 			entries: ['*']
 		}

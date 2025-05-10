@@ -13,21 +13,18 @@ export default defineConfig(({ mode }) => {
         plugins: [
             sveltekit()
         ],
-
         define: {
             'process.env.NODE_ENV': JSON.stringify(mode),
         },
         build: {
-
             outDir: path.resolve(__dirname, '.vite/renderer/main_window'),
             emptyOutDir: true,
-            rollupOptions: {
-                // Explicitly tell Vite to use the index.html at the project root as the input
-                input: path.resolve(__dirname, 'index.html')
-            }
+            manifest: true,
         },
         base: mode === 'production' ? './' : '/', // Crucial for final asset paths in Electron
         server: {
+            host: '127.0.0.1',
+            port: 5173,
             fs: {
                 allow: [__dirname]
             }

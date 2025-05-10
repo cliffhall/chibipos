@@ -144,12 +144,50 @@ async function createWindow() {
             dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${MAIN_WINDOW_VITE_DEV_SERVER_URL}. Ensure it's running.`);
           });
     } else {
+      await mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
       console.error("[Main Index] MAIN_WINDOW_VITE_DEV_SERVER_URL is not defined in development. Cannot load renderer.");
-      dialog.showErrorBox("Configuration Error", "Vite development server URL is missing.");
+      //dialog.showErrorBox("Configuration Error", "Vite development server URL is missing.");
     }
   } else {
-    // Path for production build (renderer is a sibling of the 'main' folder where index.js is)
-    const indexPath = path.join(__dirname, '..', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html');
+    // For production build, we have multiple possible locations due to different build structures
+    // Try paths in order of likelihood based on our build configuration
+
+    // First try: Primary path using the new .vite/renderer/main_window structure
+    const primaryPath = path.join(__dirname, '..', '..', '.vite', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html');
+
+    // Second try: Original Forge expected path
+    const fallbackPath = path.join(__dirname, '..', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html');
+
+    // Try another common path that might be used by electron-builder
+    const secondFallbackPath = path.join(process.resourcesPath, 'app', '.vite', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html');
+
+    // Log all paths to help diagnose issues
+    console.log(`[Main Index] Checking renderer paths:
+      Primary: ${primaryPath} (exists: ${fs.existsSync(primaryPath)})
+      Fallback: ${fallbackPath} (exists: ${fs.existsSync(fallbackPath)})
+      Second Fallback: ${secondFallbackPath} (exists: ${fs.existsSync(secondFallbackPath)})`);
+
+    // Use the first path that exists
+    let indexPath;
+    if (fs.existsSync(primaryPath)) {
+      indexPath = primaryPath;
+      console.log(`[Main Index] Using primary renderer path: ${indexPath}`);
+    } else if (fs.existsSync(fallbackPath)) {
+      indexPath = fallbackPath;
+      console.log(`[Main Index] Primary path not found, using fallback path: ${indexPath}`);
+    } else if (fs.existsSync(secondFallbackPath)) {
+      indexPath = secondFallbackPath;
+      console.log(`[Main Index] Using second fallback path: ${indexPath}`);
+    } else {
+      // No path exists, show dialog with all checked paths for debugging
+      const pathsChecked = `
+        - ${primaryPath}
+        - ${fallbackPath}
+        - ${secondFallbackPath}`;
+      console.error(`[Main Index] No renderer HTML file found. Checked paths: ${pathsChecked}`);
+      dialog.showErrorBox("Application Error", `Could not load the application. Renderer HTML not found. Paths checked: ${pathsChecked}`);
+      return;
+    }
     console.log(`[Main Index] Attempting to load PROD URL: file://${indexPath}`);
     await mainWindow.loadFile(indexPath)
         .then(() => console.log(`[Main Index] Successfully loaded PROD file: ${indexPath}`))
