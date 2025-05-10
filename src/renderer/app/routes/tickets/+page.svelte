@@ -166,7 +166,9 @@
 <main class="ticketpage">
 	<div class="calendar">
 		<!-- Pass a callback to Calendar to update tickets -->
-		<Calendar bind:tickets={updateTicketsFromCalendar} />
+<!--		<Calendar bind:tickets={updateTicketsFromCalendar} />-->
+		<Calendar onTicketsRequested={updateTicketsFromCalendar} />
+
 	</div>
 
 	<div class="table-wrapper">
