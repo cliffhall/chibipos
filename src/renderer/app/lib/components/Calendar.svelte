@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Changed from bindable to a regular prop that expects a function
-	let { tickets: updateParentTickets } = $props();
+	let { onTicketsRequested: updateParentTickets } = $props();
 
 	const labels = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
 	let selectedDate = $state(new Date());
