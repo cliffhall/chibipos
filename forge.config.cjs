@@ -6,21 +6,27 @@ const fs = require('fs-extra')
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: "**/node_modules/sqlite3/**"
+      unpack: "node_modules/sqlite3/**"
     },
     extraResource: [
       './database.sqlite'
+    ],
+    files: [
+      ".vite/build/**/*",
+      ".vite/preload.js",
+      ".vite/renderer/**/*",
+      "package.json",
+      "index.html"
     ]
   },
-
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      platforms: ['win32']
     },
     {
       name: '@electron-forge/maker-zip',
-      // platforms: ['darwin'],
+      platforms: ['darwin'],
     },
     {
       name: '@electron-forge/maker-deb',

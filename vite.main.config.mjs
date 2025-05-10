@@ -6,8 +6,8 @@ import commonjs from '@rollup/plugin-commonjs'; // You may still need this for o
 export default defineConfig({
   // ... other Vite configurations ...
   build: {
-    outDir: '.vite/build', // Ensure this matches your setup
-    lib: { // Ensure this is correctly configured for your main process entry
+    outDir: '.vite/build',
+    lib: {
       entry: 'src/main/index.js',
       formats: ['es'],
       fileName: (format) => `main.${format === 'es' ? 'js' : format}`,
