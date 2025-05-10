@@ -21,12 +21,6 @@ const config = {
 			fallback: 'index.html', // Will create .vite/renderer/main_window/index.html
 			precompress: false,
 			strict: true,
-			rollupConfig: {
-				output: {
-					entryFileNames: '[name].js',
-					chunkFileNames: '[name].js',
-				}
-			}
 		}),
 		alias: {
 			'$lib': path.resolve(__dirname, 'src/renderer/app/lib'),
@@ -42,6 +36,9 @@ const config = {
 			// SvelteKit's base path should be empty for Electron.
 			// Vite's `base: './'` in vite.renderer.config.mjs handles relative paths for production.
 			base: '',
+		},
+		prerender: {
+			entries: ['*']
 		}
 	},
 };
