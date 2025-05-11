@@ -1,19 +1,19 @@
-// /src/main/index.js
-
-// Add this line at the top to inform ESLint/linters about globals injected by the Vite plugin
-/* global MAIN_WINDOW_VITE_DEV_SERVER_URL, MAIN_WINDOW_VITE_NAME MAIN_WINDOW_PRELOAD_VITE_NAME */
-
-// ****************************************
-// IMPORTS
-// ****************************************
+// /Users/cliffhall/Projects/chibipos/src/main/index.js
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
+// Use unique names for your derived constants
+const _currentFileUrl = import.meta.url;
+const _currentFilename = fileURLToPath(_currentFileUrl);
+const _currentDirname = path.dirname(_currentFilename);
+const _nodeRequire = createRequire(_currentFileUrl);
+
 // Local module imports
 import { initializeSequelize } from '../renderer/app/lib/db/config.js';
+// --- DB Model Definitions ---
 import { defineCatProduct } from '../renderer/app/lib/db/models/catProduct.js';
 import { defineProduct } from '../renderer/app/lib/db/models/product.js';
 import { defineDailySales } from '../renderer/app/lib/db/models/daily_sales.js';
@@ -21,20 +21,12 @@ import { defineDailySalesDetails } from '../renderer/app/lib/db/models/daily_sal
 import { defineTicket } from '../renderer/app/lib/db/models/ticket.js';
 import { defineTicketDetails } from '../renderer/app/lib/db/models/ticketDetails.js';
 import { setupAssociations } from '../renderer/app/lib/db/associations.js';
-import { initializeApi } from './api.js'; // Import the API initializer
+import { initializeApi } from './api.js';
 
 // Robustly get Sequelize constructor and Op
 import sequelizePackage from 'sequelize';
 const { Sequelize: ResolvedSequelizeConstructor, Op: ResolvedOp } = sequelizePackage;
 
-// Setup __filename and __dirname for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Setup require for CJS modules if needed (like electron-squirrel-startup)
-const require = createRequire(import.meta.url);
-
-// Runtime check for ResolvedSequelize
 if (typeof ResolvedSequelizeConstructor !== 'function') {
   const errorMsg = '[Main Index] Critical: ResolvedSequelizeConstructor is not a constructor function.';
   console.error(errorMsg, 'Type:', typeof ResolvedSequelizeConstructor, 'Package keys:', Object.keys(sequelizePackage).join(', '));
@@ -47,40 +39,52 @@ if (typeof ResolvedSequelizeConstructor !== 'function') {
   throw new Error(errorMsg);
 }
 
-const started = require('electron-squirrel-startup');
-if (started) {
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (_nodeRequire('electron-squirrel-startup')) {
   app.quit();
 }
 
-const isDev = !app.isPackaged;
+// electron-vite exposes this environment variable
+const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+const isDev = !!VITE_DEV_SERVER_URL;
+
 const CRYPTO_KEY = process.env.CHIBIPOS_CRYPTO_KEY || 'your-default-super-secret-key-for-dev';
 
-if (CRYPTO_KEY === 'your-default-super-secret-key-for-dev' && app.isPackaged) {
+if (CRYPTO_KEY === 'your-default-super-secret-key-for-dev' && !isDev) {
   console.warn('[Main Index] WARNING: Using default CRYPTO_KEY in production. This is insecure!');
 }
 
 let mainWindow;
 let sequelizeInstance;
-let dbModels = {}; // Models will be stored here
+let dbModels = {};
 
 async function initializeDatabase() {
   try {
     const { sequelize, testConnection, dbPath } = initializeSequelize(app, ResolvedSequelizeConstructor);
     sequelizeInstance = sequelize;
 
-    if (app.isPackaged) {
-      const packagedDbPath = path.resolve(process.resourcesPath, 'app', 'database.sqlite');
-      if (!fs.existsSync(dbPath) && fs.existsSync(packagedDbPath)) {
-        console.log(`[Main Index] Database not found at ${dbPath}. Copying from ${packagedDbPath}...`);
-        fs.copyFileSync(packagedDbPath, dbPath);
-        console.log(`[Main Index] Database copied successfully to ${dbPath}.`);
-      } else if (!fs.existsSync(packagedDbPath) && !fs.existsSync(dbPath)) {
-        console.error(`[Main Index] Packaged database not found at ${packagedDbPath} and no existing DB at ${dbPath}. Cannot proceed.`);
+    if (!isDev) {
+      const userDataDbPath = path.join(app.getPath('userData'), 'chibipos', 'database.sqlite');
+      const resourcesDbPath = path.join(process.resourcesPath, 'database.sqlite');
+
+      console.log(`[Main Index DB] UserData DB path: ${userDataDbPath}`);
+      console.log(`[Main Index DB] Resources DB path: ${resourcesDbPath}`);
+
+      const userDataDbDir = path.dirname(userDataDbPath);
+      if (!fs.existsSync(userDataDbDir)) {
+        fs.mkdirSync(userDataDbDir, { recursive: true });
+        console.log(`[Main Index DB] Created userData directory: ${userDataDbDir}`);
+      }
+
+      if (!fs.existsSync(userDataDbPath) && fs.existsSync(resourcesDbPath)) {
+        console.log(`[Main Index DB] Database not found at ${userDataDbPath}. Copying from ${resourcesDbPath}...`);
+        fs.copyFileSync(resourcesDbPath, userDataDbPath);
+        console.log(`[Main Index DB] Database copied successfully to ${userDataDbPath}.`);
+      } else if (!fs.existsSync(resourcesDbPath) && !fs.existsSync(userDataDbPath)) {
+        console.error(`[Main Index DB] Packaged database not found at ${resourcesDbPath} and no existing DB at ${userDataDbPath}. Cannot proceed.`);
         throw new Error("Application database is missing. Please reinstall or contact support.");
-      } else if (fs.existsSync(dbPath)) {
-        console.log(`[Main Index] Database found at ${dbPath}. No copy needed.`);
-      } else if (!fs.existsSync(packagedDbPath)) {
-        console.log(`[Main Index] Packaged database not found at ${packagedDbPath}. Assuming DB will be created or already exists at ${dbPath}.`);
+      } else if (fs.existsSync(userDataDbPath)) {
+        console.log(`[Main Index DB] Database found at ${userDataDbPath}. No copy needed from resources.`);
       }
     }
 
@@ -89,6 +93,8 @@ async function initializeDatabase() {
     if (!sequelizeInstance || typeof sequelizeInstance.sync !== 'function') {
       throw new Error("Sequelize instance is not valid after initialization.");
     }
+
+    // Define models and store them
     dbModels.CatProduct = defineCatProduct(sequelizeInstance);
     dbModels.Product = defineProduct(sequelizeInstance);
     dbModels.Ticket = defineTicket(sequelizeInstance);
@@ -96,9 +102,10 @@ async function initializeDatabase() {
     dbModels.TicketDetails = defineTicketDetails(sequelizeInstance);
     dbModels.DailySalesDetails = defineDailySalesDetails(sequelizeInstance);
 
+    // Setup associations between models
     setupAssociations(sequelizeInstance);
 
-    await sequelizeInstance.sync({ alter: false });
+    await sequelizeInstance.sync({ alter: false }); // Consider { force: isDev } for easier dev resets
     console.log('[Main Index] Database schema synchronized.');
 
     return true;
@@ -120,36 +127,33 @@ async function initializeDatabase() {
   }
 }
 
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 713,
     resizable: isDev,
     webPreferences: {
-      preload: path.join(__dirname, '..', 'preload.js'),
+      preload: path.join(_currentDirname, '../preload/preload.js'), // Corrected path using _currentDirname
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  if (isDev) {
-    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-      console.log(`[Main Index] Attempting to load DEV URL: ${MAIN_WINDOW_VITE_DEV_SERVER_URL}`);
-      await mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
-          .then(() => {
-            console.log(`[Main Index] Successfully initiated DEV load for: ${MAIN_WINDOW_VITE_DEV_SERVER_URL}`);
-          })
-          .catch(err => {
-            console.error(`[Main Index] FAILED to load DEV URL: ${MAIN_WINDOW_VITE_DEV_SERVER_URL}`, err);
-            dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${MAIN_WINDOW_VITE_DEV_SERVER_URL}. Ensure it's running.`);
-          });
-    } else {
-      console.error("[Main Index] MAIN_WINDOW_VITE_DEV_SERVER_URL is not defined in development. Cannot load renderer.");
-      dialog.showErrorBox("Configuration Error", "Vite development server URL is missing.");
-    }
+  if (isDev && VITE_DEV_SERVER_URL) {
+    console.log(`[Main Index] Attempting to load DEV URL: ${VITE_DEV_SERVER_URL}`);
+    await mainWindow.loadURL(VITE_DEV_SERVER_URL)
+        .then(() => {
+          console.log(`[Main Index] Successfully initiated DEV load for: ${VITE_DEV_SERVER_URL}`);
+        })
+        .catch(err => {
+          console.error(`[Main Index] FAILED to load DEV URL: ${VITE_DEV_SERVER_URL}`, err);
+          dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${VITE_DEV_SERVER_URL}. Ensure it's running.`);
+        });
   } else {
-    // Path for production build (renderer is a sibling of the 'main' folder where index.js is)
-    const indexPath = path.join(__dirname, '..', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html');
+    // _currentDirname in production will be /path/to/app/dist/electron/main
+    // renderer is at /path/to/app/dist/electron/renderer/index.html
+    const indexPath = path.join(_currentDirname, '../renderer/index.html');
     console.log(`[Main Index] Attempting to load PROD URL: file://${indexPath}`);
     await mainWindow.loadFile(indexPath)
         .then(() => console.log(`[Main Index] Successfully loaded PROD file: ${indexPath}`))
@@ -178,11 +182,6 @@ async function createWindow() {
 // *****************
 // MENUS
 // *****************
-// Moved openMenuDialog to api.js, but menu definition stays here
-// as it uses app and mainWindow directly.
-// The click handler will call a function that's now part of the API module if needed,
-// or the API module's openMenuDialog can be imported and used.
-// For simplicity, openMenuDialog is now part of api.js and called via IPC.
 const menuTemplate = [
   {
     label: app.name,
@@ -190,12 +189,7 @@ const menuTemplate = [
       {
         label: 'Importar carta',
         click: () => {
-          // The 'open-menu-dialog' IPC event is handled in api.js
-          // We need to send it from the focused window or main window
-          let targetWindow = BrowserWindow.getFocusedWindow();
-          if (!targetWindow && mainWindow && !mainWindow.isDestroyed()) {
-            targetWindow = mainWindow;
-          }
+          let targetWindow = BrowserWindow.getFocusedWindow() || mainWindow;
           if (targetWindow && !targetWindow.isDestroyed() && targetWindow.webContents && !targetWindow.webContents.isDestroyed()) {
             targetWindow.webContents.send('trigger-open-menu-dialog');
           } else {
@@ -240,12 +234,6 @@ if (process.platform === 'darwin') {
         { role: 'unhide' },
         { type: 'separator' }
     );
-  } else if (appMenu) { // Should not happen if menuTemplate is defined correctly
-    appMenu.submenu = [
-      { role: 'about' }, { type: 'separator' }, { role: 'services' },
-      { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' },
-      { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }
-    ];
   }
 }
 
@@ -268,10 +256,8 @@ app.whenReady().then(async () => {
   // Initialize IPC handlers after database and window are ready
   initializeApi(ipcMain, dbModels, sequelizeInstance, ResolvedOp, dialog, CRYPTO_KEY, BrowserWindow, app);
 
-
   const menu = Menu.buildFromTemplate(menuTemplate);
   Menu.setApplicationMenu(menu);
-
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

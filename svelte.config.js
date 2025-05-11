@@ -5,7 +5,7 @@ import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename); // This is your project root
+const __dirname = path.dirname(__filename); // This is the project root
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,10 +15,9 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-			// Align adapter output with Electron Forge's expected renderer path
-			pages: '.vite/renderer/main_window',    // Output HTML files here
-			assets: '.vite/renderer/main_window',   // Output static assets from kit.files.assets here
-			fallback: 'index.html', // Will create .vite/renderer/main_window/index.html
+			pages: 'dist_svelte/build_output', // Output pages to a subdirectory within Vite's outDir
+			assets: 'dist_svelte/build_output', // Output assets to the same subdirectory
+			fallback: 'index.html', // This will be build_output/index.html
 			precompress: false,
 			strict: true,
 		}),
@@ -26,15 +25,13 @@ const config = {
 			'$lib': path.resolve(__dirname, 'src/renderer/app/lib'),
 		},
 		files: {
-			appTemplate: 'index.html', // Using root index.html
+			appTemplate: path.resolve(__dirname, 'index.html'),
 			routes: 'src/renderer/app/routes',
 			lib: 'src/renderer/app/lib',
-			assets: 'src/renderer/app/static', // SvelteKit's source for static assets
+			assets: 'src/renderer/app/static',
 		},
-		embedded: true, // Important for Electron integration
+		embedded: true,
 		paths: {
-			// SvelteKit's base path should be empty for Electron.
-			// Vite's `base: './'` in vite.renderer.config.mjs handles relative paths for production.
 			base: '',
 		},
 		prerender: {
