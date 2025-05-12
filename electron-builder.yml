@@ -1,4 +1,4 @@
-appId: dev.castant.chibipos # <-- CHANGE THIS to your unique App ID
+appId: dev.castant.chibipos
 productName: chibipos
 # Output directory for electron-builder
 directories:
@@ -30,7 +30,7 @@ extraResources:
   #   to: icon.ico
 
 win:
-  executableName: chibipos # Or keep puzzlemaster if preferred
+  executableName: chibipos
   # target:
   #   - target: nsis
   #     arch:

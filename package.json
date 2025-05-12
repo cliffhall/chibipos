@@ -9,7 +9,7 @@
     "start": "electron-vite dev -- --trace-warnings",
     "build:svelte": "npm run prepare && npx vite build --config svelte.vite.config.js",
     "build:electron": "electron-vite build",
-    "build": "npm run build:svelte && npm run build:electron",
+    "build": "npm run build:svelte && npm run build:electron && node scripts/copy-files.js",
     "dist:dir": "npm run build && electron-builder --dir",
     "dist:all": "npm run build && electron-builder -mwl",
     "prepare": "svelte-kit sync",
@@ -59,3 +59,4 @@
     "wait-on": "^8.0.3"
   }
 }
+
