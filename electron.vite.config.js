@@ -52,7 +52,7 @@ export default defineConfig({
       rollupOptions: {
         // This tells electron-vite to take the already built SvelteKit app
         // from `dist_svelte` and package it as the renderer.
-        input: resolve(projectRoot, 'dist_svelte/index.html')
+        input: resolve(projectRoot, 'dist_svelte/build_output/index.html')
       }
     },
     resolve: {

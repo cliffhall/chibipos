@@ -15,9 +15,10 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-			pages: 'dist_svelte/build_output', // Output pages to a subdirectory within Vite's outDir
-			assets: 'dist_svelte/build_output', // Output assets to the same subdirectory
-			fallback: 'index.html', // This will be build_output/index.html
+			// These paths are relative to svelte.vite.config.js#build.outDir ('dist_svelte')
+			pages: 'build_output',      // Corrected: will output to dist_svelte/build_output
+			assets: 'build_output',     // Corrected: will output to dist_svelte/build_output
+			fallback: 'index.html',     // Results in dist_svelte/build_output/index.html
 			precompress: false,
 			strict: true,
 		}),
