@@ -13,6 +13,7 @@
     "postbuild:electron": "node scripts/fix-html-paths.js dist_svelte/build_output/index.html && rimraf dist/electron/renderer && cpy \"dist_svelte/build_output/**\" \"dist/electron/renderer\"",
     "dist:dir": "npm run build && electron-builder --dir",
     "dist:all": "npm run build && electron-builder -mwl",
+    "dist:tree": "tree dist | sed 's/\\xc2\\xa0/ /g' > dist_tree.txt",
     "prepare": "svelte-kit sync",
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint .",
