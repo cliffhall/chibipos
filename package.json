@@ -7,9 +7,10 @@
   "type": "module",
   "scripts": {
     "start": "electron-vite dev -- --trace-warnings",
+    "build": "npm run build:svelte && npm run build:electron && node scripts/copy-files.js",
     "build:svelte": "npm run prepare && npx vite build --config svelte.vite.config.js",
     "build:electron": "electron-vite build",
-    "build": "npm run build:svelte && npm run build:electron && node scripts/copy-files.js",
+    "postbuild:electron": "node scripts/fix-html-paths.js dist_svelte/build_output/index.html && rimraf dist/electron/renderer && cpy \"dist_svelte/build_output/**\" \"dist/electron/renderer\"",
     "dist:dir": "npm run build && electron-builder --dir",
     "dist:all": "npm run build && electron-builder -mwl",
     "prepare": "svelte-kit sync",
@@ -29,8 +30,11 @@
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.20.8",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "cpy-cli": "^5.0.0",
     "electron": "35.0.2",
+    "electron-builder": "^25.1.8",
     "electron-rebuild": "^3.2.9",
+    "electron-vite": "^3.1.0",
     "escpos-usb": "^3.0.0-alpha.4",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -38,13 +42,12 @@
     "globals": "^16.0.0",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.3",
+    "rimraf": "^6.0.1",
     "sass": "^1.87.0",
     "svelte": "^5.0.0",
     "svelte-preprocess": "^6.0.3",
     "vite": "^6.0.0",
-    "vite-plugin-static-copy": "^2.3.1",
-    "electron-builder": "^25.1.8",
-    "electron-vite": "^3.1.0"
+    "vite-plugin-static-copy": "^2.3.1"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
@@ -59,4 +62,3 @@
     "wait-on": "^8.0.3"
   }
 }
-

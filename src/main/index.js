@@ -134,7 +134,7 @@ async function createWindow() {
     height: 713,
     resizable: isDev,
     webPreferences: {
-      preload: path.join(_currentDirname, '../preload/preload.js'), // Corrected path using _currentDirname
+      preload: path.join(_currentDirname, '../preload/preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -172,9 +172,9 @@ async function createWindow() {
     }
   });
 
-  if (isDev) {
+//  if (isDev) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
-  }
+//  }
 
   return mainWindow;
 }

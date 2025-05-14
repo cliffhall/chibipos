@@ -49,11 +49,11 @@ mac:
   #   - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
   #   - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false # Set to true if you have Apple Developer ID and want to notarize
-  # target:
-  #   - target: dmg
-  #     arch:
-  #       - x64
-  #       - arm64 # For Apple Silicon
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64 # For Apple Silicon
 dmg:
   artifactName: ${name}-${version}.${ext}
 

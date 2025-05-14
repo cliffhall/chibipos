@@ -13,6 +13,10 @@ const destinationPkgPath = path.join(projectRoot, 'dist', 'electron', 'package.j
 const sourceGsapPath = path.join(projectRoot, 'gsap-bonus.tgz');
 const destinationGsapPath = path.join(projectRoot, 'dist', 'electron', 'gsap-bonus.tgz');
 
+// Define paths for the database file
+const sourceDbPath = path.join(projectRoot, 'database.sqlite');
+const destinationDbPath = path.join(projectRoot, 'dist', 'electron', 'database.sqlite');
+
 async function copyFiles() {
     try {
         // Copy package.json
@@ -24,21 +28,11 @@ async function copyFiles() {
         try {
             const pkg = await fs.readJson(destinationPkgPath);
             delete pkg.devDependencies; // Remove devDependencies
-
-            // Adjust the main entry point for the packaged app
-            // The original main is "dist/electron/main/index.js"
-            // Inside dist/electron, it will be "main/index.js"
-            /*if (pkg.main && pkg.main.startsWith('dist/electron/')) {
-                pkg.main = pkg.main.replace('dist/electron/', '');
-            }*/
-            // Or, more directly if you know the structure:
-            pkg.main = 'main/index.js';
-
-
+            pkg.main = 'main/index.js'; // Adjust main path
             await fs.writeJson(destinationPkgPath, pkg, { spaces: 2 });
             console.log('[Copy Files] devDependencies removed and main path adjusted in copied package.json.');
         } catch (err) {
-            console.warn('[Copy Files] Could not process copied package.json (e.g., remove devDependencies or adjust main):', err);
+            console.warn('[Copy Files] Could not process copied package.json:', err);
         }
 
         // Copy gsap-bonus.tgz
@@ -48,6 +42,17 @@ async function copyFiles() {
             console.log('[Copy Files] gsap-bonus.tgz copied successfully.');
         } else {
             console.warn(`[Copy Files] Source file ${sourceGsapPath} not found. Skipping copy.`);
+        }
+
+        // Copy database.sqlite
+        if (await fs.pathExists(sourceDbPath)) {
+            console.log(`[Copy Files] Copying ${sourceDbPath} to ${destinationDbPath}`);
+            await fs.copy(sourceDbPath, destinationDbPath);
+            console.log('[Copy Files] database.sqlite copied successfully.');
+        } else {
+            console.warn(`[Copy Files] Source database file ${sourceDbPath} not found. Skipping copy.`);
+            // You might want to make this a critical error if the database is essential
+            // process.exit(1);
         }
 
     } catch (err) {
