@@ -1,7 +1,7 @@
 // /src/preload.js
 import { ipcRenderer, contextBridge } from 'electron';
 
-console.log('[Preload Script] Attempting to execute preload.js...');
+console.log('[Preload Script] Attempting to execute preload.cjs...');
 
 try {
   // All IPC invoke calls should be asynchronous, so they return Promises

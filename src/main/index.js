@@ -11,6 +11,8 @@ const _currentFilename = fileURLToPath(_currentFileUrl);
 const _currentDirname = path.dirname(_currentFilename);
 const _nodeRequire = createRequire(_currentFileUrl);
 
+console.log('[Main Index DEBUG] Raw VITE_DEV_SERVER_URL from process.env:', process.env['VITE_DEV_SERVER_URL']);
+
 // Local module imports
 import { initializeSequelize } from '../renderer/app/lib/db/config.js';
 // --- DB Model Definitions ---
@@ -47,6 +49,8 @@ if (_nodeRequire('electron-squirrel-startup')) {
 // electron-vite exposes this environment variable
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 const isDev = !!VITE_DEV_SERVER_URL;
+
+console.log(`[Main Index DEBUG] Parsed VITE_DEV_SERVER_URL: ${VITE_DEV_SERVER_URL}, isDev: ${isDev}`);
 
 const CRYPTO_KEY = process.env.CHIBIPOS_CRYPTO_KEY || 'your-default-super-secret-key-for-dev';
 

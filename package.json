@@ -6,18 +6,17 @@
   "main": "dist/electron/main/index.js",
   "type": "module",
   "scripts": {
-    "start": "electron-vite dev -- --trace-warnings",
+    "dev": "npm run build && VITE_DEV_SERVER_URL=http://localhost:5173 electron-vite dev -- --trace-warnings",
     "build": "npm run build:svelte && npm run build:electron && node scripts/copy-files.js",
     "build:svelte": "npm run prepare && npx vite build --config svelte.vite.config.js",
     "build:electron": "electron-vite build",
     "postbuild:electron": "node scripts/fix-html-paths.js dist_svelte/build_output/index.html && rimraf dist/electron/renderer && cpy \"dist_svelte/build_output/**\" \"dist/electron/renderer\"",
     "dist:dir": "npm run build && electron-builder --dir",
-    "dist:all": "npm run build && electron-builder -mwl",
+    "dist:all": "npm run build && electron-builder -mwl && npm run dist:tree",
     "dist:tree": "tree dist | sed 's/\\xc2\\xa0/ /g' > dist_tree.txt",
     "prepare": "svelte-kit sync",
     "format": "prettier --write .",
-    "lint": "prettier --check . && eslint .",
-    "dev": "electron-vite dev -- --trace-warnings"
+    "lint": "prettier --check . && eslint ."
   },
   "keywords": [],
   "author": "guillermo",
