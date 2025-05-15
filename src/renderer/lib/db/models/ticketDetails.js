@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/models/ticketDetails.js
 import sequelizePackage from 'sequelize';
 const { DataTypes } = sequelizePackage;
 

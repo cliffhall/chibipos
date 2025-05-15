@@ -100,7 +100,7 @@
 
 <nav>
 	<ul class="links">
-		<a href="/">Venta</a>
+		<a href="/src/renderer/static">Venta</a>
 		<a href="/tickets">Tickets</a>
 		<a href="/reportes">Reportes</a>
 	</ul>

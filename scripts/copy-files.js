@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/scripts/copy-files.js
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';

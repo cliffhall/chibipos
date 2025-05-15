@@ -1,5 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/src/renderer/app/lib/db/associations.js
-
 // This function will be called from main.js after all models have been defined.
 export function setupAssociations(sequelize) {
     // Destructure models from the sequelize instance for easier access.

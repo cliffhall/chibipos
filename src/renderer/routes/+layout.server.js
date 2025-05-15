@@ -1,8 +1,4 @@
-// *************************************
-// LAYOUT
-// *************************************
-
-// src/renderer/app/routes/+layout.server.js
+export const ssr = false;
 export async function load() {
   console.log('(+layout.server.js) load function called', new Date().toISOString());
   // Provide initial empty structures for data that will be fetched client-side

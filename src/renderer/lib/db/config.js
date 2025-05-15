@@ -1,4 +1,4 @@
-// src/renderer/app/lib/db/config.js
+// src/renderer//lib/db/config.js
 import path from 'node:path';
 import fs from 'node:fs';
 

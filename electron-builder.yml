@@ -3,7 +3,6 @@ productName: chibipos
 # Output directory for electron-builder
 directories:
   output: dist/builder
-  # Directory where electron-vite has built the app (main.js, preload.js, renderer folder)
   app: dist/electron
   buildResources: build # Keep this if you have a 'build' folder with icons, etc.
 

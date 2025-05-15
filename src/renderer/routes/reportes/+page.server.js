@@ -1,6 +1,4 @@
 
-export const prerender = false;
-
 export async function load({ fetch }) {
   try {
     const salesRequest = await fetch(`/api/sale/month?date=${new Date()}`);

@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/src/main/index.js
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -14,15 +13,15 @@ const _nodeRequire = createRequire(_currentFileUrl);
 console.log('[Main Index DEBUG] Raw VITE_DEV_SERVER_URL from process.env:', process.env['VITE_DEV_SERVER_URL']);
 
 // Local module imports
-import { initializeSequelize } from '../renderer/app/lib/db/config.js';
+import { initializeSequelize } from '../renderer//lib/db/config.js';
 // --- DB Model Definitions ---
-import { defineCatProduct } from '../renderer/app/lib/db/models/catProduct.js';
-import { defineProduct } from '../renderer/app/lib/db/models/product.js';
-import { defineDailySales } from '../renderer/app/lib/db/models/daily_sales.js';
-import { defineDailySalesDetails } from '../renderer/app/lib/db/models/daily_salesDetails.js';
-import { defineTicket } from '../renderer/app/lib/db/models/ticket.js';
-import { defineTicketDetails } from '../renderer/app/lib/db/models/ticketDetails.js';
-import { setupAssociations } from '../renderer/app/lib/db/associations.js';
+import { defineCatProduct } from '../renderer//lib/db/models/catProduct.js';
+import { defineProduct } from '../renderer//lib/db/models/product.js';
+import { defineDailySales } from '../renderer//lib/db/models/daily_sales.js';
+import { defineDailySalesDetails } from '../renderer//lib/db/models/daily_salesDetails.js';
+import { defineTicket } from '../renderer//lib/db/models/ticket.js';
+import { defineTicketDetails } from '../renderer//lib/db/models/ticketDetails.js';
+import { setupAssociations } from '../renderer//lib/db/associations.js';
 import { initializeApi } from './api.js';
 
 // Robustly get Sequelize constructor and Op
@@ -155,9 +154,7 @@ async function createWindow() {
           dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${VITE_DEV_SERVER_URL}. Ensure it's running.`);
         });
   } else {
-    // _currentDirname in production will be /path/to/app/dist/electron/main
-    // renderer is at /path/to/app/dist/electron/renderer/index.html
-    const indexPath = path.join(_currentDirname, '../renderer/index.html');
+    const indexPath = path.join(_currentDirname, '../index.html');
     console.log(`[Main Index] Attempting to load PROD URL: file://${indexPath}`);
     await mainWindow.loadFile(indexPath)
         .then(() => console.log(`[Main Index] Successfully loaded PROD file: ${indexPath}`))

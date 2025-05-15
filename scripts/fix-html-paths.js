@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/scripts/fix-html-paths.js
 import fs from 'node:fs';
 import path from 'node:path';
 

@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/electron.vite.config.js
 import { resolve } from 'path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
@@ -36,35 +35,30 @@ export default defineConfig({
     }
   },
   renderer: {
-    // For the build, the root is where the SvelteKit output is.
-    // electron-vite build will take input from here.
-    root: resolve(projectRoot, 'dist_svelte/build_output'),
     build: {
+      root: resolve(projectRoot, 'dist_svelte'),
       base: './',
       target: 'chrome114',
       outDir: resolve(projectRoot, 'dist/electron/renderer'),
       emptyOutDir: true,
       assetsInlineLimit: 0,
       rollupOptions: {
-        // Input is index.html from SvelteKit's build output,
-        // relative to the `root` defined above.
-        input: resolve(projectRoot, 'dist_svelte/build_output/index.html'),
+        input: resolve(projectRoot, 'dist_svelte', 'index.html'),
         output: {
-          // Consistent naming for relative paths
-          chunkFileNames: 'assets/[name]-[hash].js',
-          entryFileNames: 'assets/[name]-[hash].js',
-          assetFileNames: 'assets/[name]-[hash].[ext]',
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          entryFileNames: 'entry/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
         }
       }
     },
     resolve: {
       alias: {
-        '$lib': resolve(projectRoot, 'src/renderer/app/lib')
+        '$lib': resolve(projectRoot, 'src','renderer','lib')
       }
     },
-    server: { // This is for dev server, not directly related to build issue
+    server: {
       fs: {
-        allow: ['.', 'src', resolve(projectRoot, 'dist_svelte/build_output')]
+        allow: ['.', 'src', resolve(projectRoot, 'dist_svelte')]
       }
     }
   }

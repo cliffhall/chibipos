@@ -14,7 +14,6 @@
 	let products = $state(data.initialProducts || []); // This ensures 'products' is an array during SSR
 	let isLoading = $state(true);
 
-	// src/renderer/app/routes/+page.svelte
 	onMount(async () => {
 		isLoading = true;
 		try {
