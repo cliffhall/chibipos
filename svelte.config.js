@@ -15,10 +15,10 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-			// These paths are relative to svelte.vite.config.js#build.outDir ('dist_svelte')
-			pages: 'dist_svelte/build_output',      // Corrected: will output to dist_svelte/build_output
-			assets: 'dist_svelte/build_output',     // Corrected: will output to dist_svelte/build_output
-			fallback: 'index.html',     // Results in dist_svelte/build_output/index.html
+
+			pages: 'dist_svelte/build_output',
+			assets: 'dist_svelte/build_output',
+			fallback: 'index.html',
 			precompress: false,
 			strict: true,
 		}),
@@ -36,7 +36,7 @@ const config = {
 			base: '',
 		},
 		prerender: {
-			entries: ['*']
+			entries: []
 		}
 	},
 };

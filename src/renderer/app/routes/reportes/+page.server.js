@@ -1,4 +1,5 @@
 
+/*
 export const prerender = false;
 
 export async function load({ fetch }) {
@@ -19,3 +20,4 @@ export async function load({ fetch }) {
     return { sales: [], error: 'An unexpected error occurred while loading sales data.' };
   }
 }
+*/
