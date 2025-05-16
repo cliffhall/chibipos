@@ -244,8 +244,11 @@ if (process.platform === 'darwin') {
 
 // App Lifecycle
 app.whenReady().then(async () => {
+  console.log('[Main Index] App is ready.'); // Added for clarity
+
   const dbInitialized = await initializeDatabase();
   if (!dbInitialized) {
+    console.error('[Main Index] Database initialization failed. Quitting app.');
     if (app && typeof app.quit === 'function' && (typeof app.isQuitting !== 'function' || !app.isQuitting())) {
       app.quit();
     } else if (app && typeof app.isQuitting !== 'function') {
@@ -254,18 +257,28 @@ app.whenReady().then(async () => {
     }
     return;
   }
+  console.log('[Main Index] Database initialized successfully.');
 
-  await createWindow();
-
-  // Initialize IPC handlers after database and window are ready
+  // ***** MOVE INITIALIZE API CALL HERE *****
+  // Initialize IPC handlers BEFORE the window is created and loads content.
+  // All dependencies for initializeApi (ipcMain, dbModels, sequelizeInstance, etc.)
+  // are available at this point.
+  console.log('[Main Index] Initializing API handlers...');
   initializeApi(ipcMain, dbModels, sequelizeInstance, ResolvedOp, dialog, CRYPTO_KEY, BrowserWindow, app);
+  console.log('[Main Index] API handlers initialized.');
+
+  console.log('[Main Index] Creating main window...');
+  await createWindow(); // Now create the window. Renderer will load and find handlers ready.
+  console.log('[Main Index] Main window created.');
 
   const menu = Menu.buildFromTemplate(menuTemplate);
   Menu.setApplicationMenu(menu);
+  console.log('[Main Index] Application menu set.');
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      console.log('[Main Index] App activated and no windows open, creating window...');
+      createWindow(); // API handlers are already set up if we need to recreate
     }
   });
 });

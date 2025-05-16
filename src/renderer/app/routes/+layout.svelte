@@ -9,57 +9,65 @@
 	import PrinterConfig from '$lib/components/PrinterConfig.svelte';
 	import { printerConfig } from '../lib/stores/shared.svelte.js';
 	import { onMount } from 'svelte';
-	// import { invalidateAll } from '$app/navigation';
+	import { invalidateAll } from '$app/navigation';
 
 	let { children } = $props();
 
 	function animateMenuChange() {
 		console.log('animateMenuChange: Menu has been updated.');
-		// Consider actions like invalidateAll();
+		invalidateAll();
 	}
 
+
 	onMount(() => {
-		if (window.api && typeof window.api.onMenuOpened === 'function') {
+		console.log('[+layout.svelte onMount] MOUNTED. Checking window object:', window);
+		if (window.api) {
+			console.log('[+layout.svelte onMount] window.api IS AVAILABLE. Keys:', Object.keys(window.api));
+			if (typeof window.api.getCategories === 'function') {
+				console.log('[+layout.svelte onMount] window.api.getCategories IS a function.');
+			} else {
+				console.warn('[+layout.svelte onMount] window.api.getCategories IS NOT a function.');
+			}
 
-			const removeListener = window.api.onMenuOpened(async (content) => {
-				try {
-					const stringContent = typeof content === 'string' ? content : JSON.stringify(content);
-					const base64Content = btoa(stringContent);
+			// Use the new handler for menu file opened
+			if (typeof window.api.onMenuFileOpened === 'function') {
+				console.log('[+layout.svelte onMount] Setting up onMenuFileOpened listener.');
+				const removeListener = window.api.onMenuFileOpened(async (content) => {
+					try {
+						console.log('[+layout.svelte] Received menu-file-opened with content.');
+						// Ensure content is a string before btoa
+						const stringContent = typeof content === 'string' ? content : JSON.stringify(content);
+						// Correctly encode UTF-8 to Base64
+						const base64Content = btoa(unescape(encodeURIComponent(stringContent)));
 
-					if (window.api && typeof window.api.importUpdateMenu === 'function') {
-						const response = await window.api.importUpdateMenu(base64Content);
-						if (response && response.status === 200 && response.success) {
-							console.log('Menu update via IPC successful:', response.message);
-							animateMenuChange();
+						if (window.api && typeof window.api.importUpdateMenu === 'function') {
+							const response = await window.api.importUpdateMenu(base64Content);
+							if (response && response.status === 200 && response.success) {
+								console.log('Menu update via IPC successful:', response.message);
+								animateMenuChange();
+							} else {
+								console.error('Menu update via IPC failed:', response?.error || response?.message || 'Unknown error');
+							}
 						} else {
-							console.error('Menu update via IPC failed:', response?.error || response?.message || 'Unknown error');
+							console.warn('[+layout.svelte] window.api.importUpdateMenu is not available.');
 						}
-					} else {
-						console.warn('window.api.importUpdateMenu is not available. Check preload script.');
+					} catch (error) {
+						console.error('[+layout.svelte] Error processing menu update in onMenuFileOpened:', error);
 					}
-				} catch (error) {
-					console.error('Error processing menu update in onMenuOpened:', error);
-				}
-			});
+				});
 
-			// Cleanup the listener when the component is destroyed
-			return () => {
-				if (typeof removeListener === 'function') {
-					removeListener(); // This should now always be true if preload.js is updated
-				} else {
-					// This else block becomes less likely to be hit if preload is correct,
-					// but can be kept as an extreme fallback or removed if you're confident.
-					console.warn('[+layout.svelte onMount cleanup] removeListener was not a function. This indicates an issue with preload.js.');
-					if (window.ipcRenderer) {
-						window.ipcRenderer.removeAllListeners('menu-file-opened');
+				return () => {
+					if (typeof removeListener === 'function') {
+						console.log('[+layout.svelte onUnmount] Removing onMenuFileOpened listener.');
+						removeListener();
 					}
-				}
-			};
+				};
+			} else {
+				console.warn('[+layout.svelte onMount] window.api.onMenuFileOpened is NOT available.');
+			}
 		} else {
-			console.warn('[+layout.svelte onMount] window.api or window.api.onMenuOpened is not available. Check preload script.');
+			console.warn('[+layout.svelte onMount] window.api IS NOT AVAILABLE.');
 		}
-		// No explicit return undefined needed here if the if-condition doesn't execute,
-		// onMount implicitly returns undefined if no cleanup function is returned.
 	});
 </script>
 

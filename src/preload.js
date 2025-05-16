@@ -31,6 +31,16 @@ try {
     // UI Interaction (like opening dialogs triggered from renderer)
     // This allows the renderer to directly ask to open the menu dialog
     openMenuDialog: () => ipcRenderer.send('open-menu-dialog'),
+
+    onMenuFileOpened: (callback) => {
+      const handler = (event, content) => callback(content);
+      ipcRenderer.on('menu-file-opened', handler);
+      // Return a cleanup function
+      return () => {
+        ipcRenderer.removeListener('menu-file-opened', handler);
+      };
+    }
+
   };
 
   console.log('[Preload Script] API object defined. Attempting to expose API.');
