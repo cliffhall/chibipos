@@ -2,21 +2,16 @@
 	// Import the ACTUAL shared store
 	import { printerConfig } from '../stores/shared.svelte.js'; // Adjust path if necessary, this assumes Nav.svelte is in lib/components/
 
-	// This function uses fetch and doesn't seem to be called by any UI element
-	// in the provided code. If it's needed, it should also be converted to use
-	// an IPC call, and you'd need a corresponding handler in main.js.
-	// For now, I'll leave it commented or you can remove it if it's unused.
-	/*
-	async function changeTicketDate() {
-		// This would need an IPC equivalent, e.g., window.api.updateTicketDate(...)
-		const response = await fetch('/api/ticket', {
-			method: 'PATCH',
-			headers: {'Content-Type': 'application/json'}
-		})
-		const result = await response.json()
-		console.log('change date result: ', result)
+	// --- DIAGNOSTIC FUNCTION ---
+	function handleLinkClick(event) {
+		const href = event.currentTarget.getAttribute('href');
+		console.log(`[Nav.svelte DIAGNOSTIC] Link clicked. Attempting to navigate to: ${href}`);
+		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.href: ${window.location.href}`);
+		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.pathname: ${window.location.pathname}`);
+		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.hash: ${window.location.hash}`);
+		// We are NOT calling event.preventDefault(), so the browser's default navigation will proceed.
 	}
-	*/
+
 
 	async function updateDailySales() {
 		console.log('[Nav.svelte] Starting updateDailySales process...');
@@ -100,9 +95,9 @@
 
 <nav>
 	<ul class="links">
-		<a href="/">Venta</a>
-		<a href="/tickets">Tickets</a>
-		<a href="/reportes">Reportes</a>
+		<a href="/" onclick={handleLinkClick}>Venta</a>
+		<a href="/tickets" onclick={handleLinkClick}>Tickets</a>
+		<a href="/reportes" onclick={handleLinkClick}>Reportes</a>
 	</ul>
 
 	<ul class="buttons">

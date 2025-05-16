@@ -10,6 +10,7 @@
 	import { printerConfig } from '../lib/stores/shared.svelte.js';
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores'; // Import the $page store
 
 	let { children } = $props();
 
@@ -18,56 +19,72 @@
 		invalidateAll();
 	}
 
-
 	onMount(() => {
-		console.log('[+layout.svelte onMount] MOUNTED. Checking window object:', window);
-		if (window.api) {
-			console.log('[+layout.svelte onMount] window.api IS AVAILABLE. Keys:', Object.keys(window.api));
-			if (typeof window.api.getCategories === 'function') {
-				console.log('[+layout.svelte onMount] window.api.getCategories IS a function.');
-			} else {
-				console.warn('[+layout.svelte onMount] window.api.getCategories IS NOT a function.');
+		console.log('[+layout.svelte DIAGNOSTIC] Component Mounted.');
+		console.log(`[+layout.svelte DIAGNOSTIC] Initial window.location.href: ${window.location.href}`);
+		console.log(`[+layout.svelte DIAGNOSTIC] Initial window.location.pathname: ${window.location.pathname}`);
+		console.log(`[+layout.svelte DIAGNOSTIC] Initial window.location.hash: ${window.location.hash}`);
+
+		// --- DIAGNOSTIC: Find and log SvelteKit's base path ---
+		let svelteKitBaseFound = 'NOT FOUND in window object';
+		let svelteKitBaseValue = 'N/A';
+		for (const key in window) {
+			if (key.startsWith('__sveltekit_') && typeof window[key] === 'object' && window[key] !== null && 'base' in window[key]) {
+				svelteKitBaseFound = key;
+				svelteKitBaseValue = window[key].base;
+				break;
 			}
-
-			// Use the new handler for menu file opened
-			if (typeof window.api.onMenuFileOpened === 'function') {
-				console.log('[+layout.svelte onMount] Setting up onMenuFileOpened listener.');
-				const removeListener = window.api.onMenuFileOpened(async (content) => {
-					try {
-						console.log('[+layout.svelte] Received menu-file-opened with content.');
-						// Ensure content is a string before btoa
-						const stringContent = typeof content === 'string' ? content : JSON.stringify(content);
-						// Correctly encode UTF-8 to Base64
-						const base64Content = btoa(unescape(encodeURIComponent(stringContent)));
-
-						if (window.api && typeof window.api.importUpdateMenu === 'function') {
-							const response = await window.api.importUpdateMenu(base64Content);
-							if (response && response.status === 200 && response.success) {
-								console.log('Menu update via IPC successful:', response.message);
-								animateMenuChange();
-							} else {
-								console.error('Menu update via IPC failed:', response?.error || response?.message || 'Unknown error');
-							}
-						} else {
-							console.warn('[+layout.svelte] window.api.importUpdateMenu is not available.');
-						}
-					} catch (error) {
-						console.error('[+layout.svelte] Error processing menu update in onMenuFileOpened:', error);
-					}
-				});
-
-				return () => {
-					if (typeof removeListener === 'function') {
-						console.log('[+layout.svelte onUnmount] Removing onMenuFileOpened listener.');
-						removeListener();
-					}
-				};
-			} else {
-				console.warn('[+layout.svelte onMount] window.api.onMenuFileOpened is NOT available.');
-			}
-		} else {
-			console.warn('[+layout.svelte onMount] window.api IS NOT AVAILABLE.');
 		}
+		console.log(`[+layout.svelte DIAGNOSTIC] SvelteKit base object key: ${svelteKitBaseFound}`);
+		console.log(`[+layout.svelte DIAGNOSTIC] SvelteKit base value:`, svelteKitBaseValue);
+		// --- END DIAGNOSTIC ---
+
+		// --- DIAGNOSTIC: Log the $page store from SvelteKit ---
+		const unsubscribePageStore = page.subscribe(currentPage => {
+			// To avoid excessive logging if the page store updates frequently for minor reasons,
+			// you might want to log only specific properties or log conditionally.
+			// For now, logging the whole object for thoroughness.
+			console.log('[+layout.svelte DIAGNOSTIC] $page store update:', JSON.parse(JSON.stringify(currentPage)));
+		});
+		// --- END DIAGNOSTIC ---
+
+		let removeMenuFileListener = () => {}; // Default to no-op
+
+		if (window.api && typeof window.api.onMenuFileOpened === 'function') {
+			console.log('[+layout.svelte onMount] Setting up onMenuFileOpened listener.');
+			removeMenuFileListener = window.api.onMenuFileOpened(async (content) => {
+				try {
+					console.log('[+layout.svelte] Received menu-file-opened with content.');
+					const stringContent = typeof content === 'string' ? content : JSON.stringify(content);
+					const base64Content = btoa(unescape(encodeURIComponent(stringContent)));
+
+					if (window.api && typeof window.api.importUpdateMenu === 'function') {
+						const response = await window.api.importUpdateMenu(base64Content);
+						if (response && response.status === 200 && response.success) {
+							console.log('Menu update via IPC successful:', response.message);
+							animateMenuChange();
+						} else {
+							console.error('Menu update via IPC failed:', response?.error || response?.message || 'Unknown error');
+						}
+					} else {
+						console.warn('[+layout.svelte] window.api.importUpdateMenu is not available.');
+					}
+				} catch (error) {
+					console.error('[+layout.svelte] Error processing menu update in onMenuFileOpened:', error);
+				}
+			});
+		} else {
+			console.warn('[+layout.svelte onMount] window.api.onMenuFileOpened is NOT available.');
+		}
+
+		// Cleanup function for onMount
+		return () => {
+			console.log('[+layout.svelte onUnmount] Cleaning up listeners.');
+			unsubscribePageStore(); // Unsubscribe from $page store
+			if (typeof removeMenuFileListener === 'function') {
+				removeMenuFileListener(); // Remove the menu file listener
+			}
+		};
 	});
 </script>
 
