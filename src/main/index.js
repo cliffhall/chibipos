@@ -158,8 +158,9 @@ async function createWindow() {
     // _currentDirname in production will be /path/to/app/dist/electron/main
     // renderer is at /path/to/app/dist/electron/renderer/index.html
     const indexPath = path.join(_currentDirname, '../renderer/index.html');
-    console.log(`[Main Index] Attempting to load PROD URL: file://${indexPath}`);
-    await mainWindow.loadFile(indexPath)
+    const prodUrl = `file://${indexPath}#/`;
+    console.log(`[Main Index] Attempting to load PROD URL: ${prodUrl}`);
+    await mainWindow.loadURL(prodUrl)
         .then(() => console.log(`[Main Index] Successfully loaded PROD file: ${indexPath}`))
         .catch(err => {
           console.error(`[Main Index] FAILED to load PROD file: ${indexPath}`, err);

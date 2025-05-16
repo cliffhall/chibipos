@@ -1,103 +1,85 @@
 <script>
-	// Import the ACTUAL shared store
-	import { printerConfig } from '../stores/shared.svelte.js'; // Adjust path if necessary, this assumes Nav.svelte is in lib/components/
+	import { printerConfig } from '../stores/shared.svelte.js';
+	import { goto } from '$app/navigation';
 
-	// --- DIAGNOSTIC FUNCTION ---
-	function handleLinkClick(event) {
-		const href = event.currentTarget.getAttribute('href');
-		console.log(`[Nav.svelte DIAGNOSTIC] Link clicked. Attempting to navigate to: ${href}`);
-		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.href: ${window.location.href}`);
-		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.pathname: ${window.location.pathname}`);
-		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.hash: ${window.location.hash}`);
-		// We are NOT calling event.preventDefault(), so the browser's default navigation will proceed.
+	async function navigateTo(path) {
+		console.log(`[Nav.svelte DIAGNOSTIC] Attempting to goto: ${path}`);
+		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.href (before goto): ${window.location.href}`);
+		try {
+			await goto(path); // Use SvelteKit's goto
+			// After goto, SvelteKit's $page store should update, which will trigger the
+			// diagnostic in +layout.svelte.
+			console.log(`[Nav.svelte DIAGNOSTIC] goto('${path}') completed. New window.location.href (after goto): ${window.location.href}`);
+		} catch (error) {
+			// Errors during goto usually mean the path couldn't be resolved by SvelteKit's router
+			console.error(`[Nav.svelte DIAGNOSTIC] Error during goto('${path}'):`, error);
+		}
 	}
-
 
 	async function updateDailySales() {
 		console.log('[Nav.svelte] Starting updateDailySales process...');
 		let reportGeneratedOrFound = false;
-		const targetDate = new Date(); // Starts from "today" to then go to "yesterday"
+		const targetDate = new Date();
 		let dateString;
 		let daysChecked = 0;
-		const maxDaysToCheck = 365; // Safety limit
+		const maxDaysToCheck = 365;
 
 		while (!reportGeneratedOrFound && daysChecked < maxDaysToCheck) {
-			targetDate.setDate(targetDate.getDate() - 1); // Go to the previous day
-			dateString = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+			targetDate.setDate(targetDate.getDate() - 1);
+			dateString = targetDate.toISOString().split('T')[0];
 			daysChecked++;
-
 			console.log(`[Nav.svelte] Checking for sales report or tickets for: ${dateString}`);
-
 			try {
 				if (!window.api || typeof window.api.getSaleByDate !== 'function' || typeof window.api.getTicketsByDate !== 'function' || typeof window.api.updateDailySalesReport !== 'function') {
 					console.error('[Nav.svelte] One or more required window.api functions are not available. Check preload script.');
 					break;
 				}
-
-				// 1. Check if a sales report already exists for this date
 				const saleCheckResponse = await window.api.getSaleByDate(dateString);
-
 				if (saleCheckResponse && saleCheckResponse.status === 200 && saleCheckResponse.sale) {
-					console.log(`[Nav.svelte] Sales report for ${dateString} already exists. No further updates needed for prior dates.`);
-					reportGeneratedOrFound = true; // Found an existing report, stop.
+					console.log(`[Nav.svelte] Sales report for ${dateString} already exists.`);
+					reportGeneratedOrFound = true;
 					break;
 				} else if (saleCheckResponse && saleCheckResponse.status === 204) {
-					// No sales report exists for this date, check if there were tickets
-					console.log(`[Nav.svelte] No sales report for ${dateString}. Checking for tickets...`);
 					const ticketsResponse = await window.api.getTicketsByDate(dateString);
-
 					if (ticketsResponse && !ticketsResponse.error && ticketsResponse.length > 0) {
-						console.log(`[Nav.svelte] Found ${ticketsResponse.length} tickets for ${dateString}. Attempting to generate sales report...`);
-						// Tickets exist, so generate the sales report for this day
 						const updateResult = await window.api.updateDailySalesReport(dateString);
-
 						if (updateResult && updateResult.status === 200 && updateResult.dailySale) {
-							console.log(`[Nav.svelte] Successfully generated sales report for ${dateString}:`, updateResult.dailySale);
-							reportGeneratedOrFound = true; // Report generated, stop.
+							console.log(`[Nav.svelte] Successfully generated sales report for ${dateString}.`);
+							reportGeneratedOrFound = true;
 						} else {
-							console.error(`[Nav.svelte] Failed to generate sales report for ${dateString}:`, updateResult?.error || 'Unknown error during report generation.');
-							// Optionally, you might want to break here or log and continue to the next day
+							console.error(`[Nav.svelte] Failed to generate sales report for ${dateString}:`, updateResult?.error);
 						}
-						break; // Stop after attempting to generate a report for the first day that needs it
+						break;
 					} else if (ticketsResponse && ticketsResponse.error) {
 						console.error(`[Nav.svelte] Error fetching tickets for ${dateString}:`, ticketsResponse.error);
-						// Decide if you want to stop or continue
 					} else {
-						console.log(`[Nav.svelte] No tickets found for ${dateString}. Continuing to check previous day.`);
+						console.log(`[Nav.svelte] No tickets for ${dateString}.`);
 					}
 				} else if (saleCheckResponse && saleCheckResponse.error) {
-					console.error(`[Nav.svelte] Error checking for existing sales report for ${dateString}:`, saleCheckResponse.error);
-					// Decide if you want to stop or continue
-				} else if (saleCheckResponse && saleCheckResponse.status !== 200 && saleCheckResponse.status !== 204) {
-					console.warn(`[Nav.svelte] Unexpected status ${saleCheckResponse.status} when checking sales for ${dateString}.`);
+					console.error(`[Nav.svelte] Error checking sales report for ${dateString}:`, saleCheckResponse.error);
 				}
-
 			} catch (error) {
-				console.error(`[Nav.svelte] Error during updateDailySales loop for date ${dateString}:`, error);
-				// Decide if you want to break the loop on a general error
+				console.error(`[Nav.svelte] Error in updateDailySales for ${dateString}:`, error);
 				break;
 			}
 		}
-
-		if (!reportGeneratedOrFound && daysChecked >= maxDaysToCheck) {
-			console.log('[Nav.svelte] updateDailySales: Checked max days without finding a report to generate or an existing one.');
-		} else if (!reportGeneratedOrFound) {
-			console.log('[Nav.svelte] updateDailySales: Process completed. No new reports were generated (either up-to-date or no eligible days found).');
+		if (!reportGeneratedOrFound) {
+			console.log('[Nav.svelte] updateDailySales: No new reports generated or needed.');
 		}
 	}
 
 	function togglePrinterConfig() {
-		// Now this modifies the 'visible' property of the SHARED printerConfig store
 		printerConfig.visible = !printerConfig.visible;
-		console.log('[Nav.svelte] Toggled SHARED printerConfig.visible to:', printerConfig.visible); // For debugging
+		console.log('[Nav.svelte] Toggled printerConfig.visible to:', printerConfig.visible);
 	}
 </script>
 
 <nav>
 	<ul class="links">
-		<a href="/" onclick={handleLinkClick}>Venta</a>
-		<a href="/tickets" onclick={handleLinkClick}>Tickets</a>
-		<a href="/reportes" onclick={handleLinkClick}>Reportes</a>
+		<!-- Use buttons calling navigateTo. SvelteKit's goto expects paths like /tickets, not #/tickets -->
+		<button class="nav-button-link" onclick={() => navigateTo('/')}>Venta</button>
+		<button class="nav-button-link" onclick={() => navigateTo('/tickets')}>Tickets</button>
+		<button class="nav-button-link" onclick={() => navigateTo('/reportes')}>Reportes</button>
 	</ul>
 
 	<ul class="buttons">
@@ -121,39 +103,42 @@
 		gap: 2em;
 	}
 
-	button {
-		color: var(--color-light);
-		/* border: solid var(--color-light) 1px; */ /* This was duplicated */
+	/* Style for regular buttons in the "buttons" ul */
+	.buttons button {
 		color: var(--color-text-secondary);
-		border: solid 1px;
-		border-color: var(--color-text-secondary);
+		border: solid 1px var(--color-text-secondary);
 		border-radius: 8px;
 		padding: 0.5em 1em;
 		cursor: pointer;
 		transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-
-		&:hover {
-			border-color: var(--color-light);
-			color: var(--color-light);
-			background-color: var(--color-hover);
-		}
+		background-color: transparent; /* Ensure it's distinct from nav-button-link if needed */
 	}
 
-	a {
+	.buttons button:hover {
+		border-color: var(--color-light);
+		color: var(--color-light);
+		background-color: var(--color-hover);
+	}
+
+	/* Style for buttons in "links" ul to make them look like the previous <a> tags */
+	.links button.nav-button-link {
 		padding: 0.5em 1em;
 		cursor: pointer;
 		border-radius: 8px;
-		/* border: solid var(--color-light) 1px; */ /* This was duplicated */
 		border: solid var(--color-text-secondary) 1px;
 		color: var(--color-text-secondary);
 		min-width: 8em;
 		text-align: center;
 		transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+		background-color: transparent; /* Important for link appearance */
+		font-family: inherit; /* Match surrounding text */
+		font-size: inherit; /* Match surrounding text */
+		line-height: inherit; /* Match surrounding text */
+	}
 
-		&:hover {
-			border-color: var(--color-light);
-			color: var(--color-light);
-			background-color: var(--color-hover);
-		}
+	.links button.nav-button-link:hover {
+		border-color: var(--color-light);
+		color: var(--color-light);
+		background-color: var(--color-hover);
 	}
 </style>
