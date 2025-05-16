@@ -18,10 +18,10 @@ if (!fs.existsSync(absoluteFilePath)) {
 
 try {
     let htmlContent = fs.readFileSync(absoluteFilePath, 'utf-8');
+    let originalHtmlContent = htmlContent; // Store original for comparison
     let replacementsMade = 0;
 
     // Regex for href and src attributes
-    // (href|src)=(")/... -> (href|src)="./...
     const attributePathRegex = /(href|src)=(")\/(?!(?:[a-z]+:)?\/\/)((?:_app|favicon\.png|assets|static|images)[^"]*)/gi;
     htmlContent = htmlContent.replace(attributePathRegex, (match, attribute, quote, pathPart) => {
         replacementsMade++;
@@ -29,19 +29,44 @@ try {
     });
 
     // Regex for dynamic import() statements in inline scripts
-    // import("/_app/...) -> import("./_app/...)
-    // Handles both double and single quotes around the path
     const dynamicImportPathRegex = /import\((["'])\/(?!(?:[a-z]+:)?\/\/)((?:_app)[^"']*)\1\)/gi;
     htmlContent = htmlContent.replace(dynamicImportPathRegex, (match, quote, pathPart) => {
         replacementsMade++;
         return `import(${quote}./${pathPart}${quote})`;
     });
 
+    // Regex to find and replace the SvelteKit base path
+    // Targets: __sveltekit_xxxx = { base: "" }; or similar structures
+    const sveltekitBaseAssignmentRegex = /(const\s+)?(__sveltekit_\w+\s*=\s*\{[\s\S]*?base\s*:\s*)(["'])(["'])([\s\S]*?};)/;
+    // g1: optional "const "
+    // g2: `__sveltekit_HASH = { ... base: `
+    // g3: opening quote `"` (assuming empty base string)
+    // g4: closing quote `"` (assuming empty base string)
+    // g5: rest of the object ` };` (including potential newlines and spaces)
+
+    htmlContent = htmlContent.replace(sveltekitBaseAssignmentRegex, (match, g1Const, g2Prefix, g3OpenQuote, g4CloseQuote, g5Suffix) => {
+        // Check if the current base value is indeed empty (g3OpenQuote and g4CloseQuote are consecutive)
+        // This is a safeguard, though the regex is designed for base: ""
+        if (g3OpenQuote === g4CloseQuote || (g3OpenQuote + g4CloseQuote === `""`) || (g3OpenQuote + g4CloseQuote === `''`)) {
+            const dynamicBase = 'new URL(".", location).pathname.slice(0, -1)';
+            console.log('[fix-html-paths] Modifying SvelteKit base path for embedded mode.');
+            replacementsMade++;
+            return (g1Const || '') + g2Prefix + dynamicBase + g5Suffix;
+        }
+        // If base wasn't empty or quotes didn't match, return original match to avoid breaking something unexpected
+        return match;
+    });
+
+    if (htmlContent === originalHtmlContent && /__sveltekit_\w+\s*=\s*\{/.test(originalHtmlContent) && /base\s*:\s*""/.test(originalHtmlContent)) {
+        console.warn('[fix-html-paths] SvelteKit base path object with `base: ""` was found, but the regex replacement did not occur. Check the regex in fix-html-paths.js.');
+    }
+
+
     if (replacementsMade > 0) {
         fs.writeFileSync(absoluteFilePath, htmlContent, 'utf-8');
-        console.log(`Successfully updated paths in ${absoluteFilePath} to be relative (attributes and dynamic imports).`);
+        console.log(`Successfully updated paths in ${absoluteFilePath}.`);
     } else {
-        console.log(`No root-relative paths needing replacement were found in ${absoluteFilePath}.`);
+        console.log(`No paths needing replacement were found in ${absoluteFilePath}.`);
     }
 
 } catch (error) {

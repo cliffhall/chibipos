@@ -15,7 +15,6 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-
 			pages: 'dist_svelte/build_output',
 			assets: 'dist_svelte/build_output',
 			fallback: 'index.html',
@@ -36,7 +35,7 @@ const config = {
 			base: '',
 		},
 		prerender: {
-			entries: []
+			entries: ['*']
 		}
 	},
 };
