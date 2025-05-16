@@ -61,11 +61,6 @@ export default defineConfig({
       alias: {
         '$lib': resolve(projectRoot, 'src/renderer/app/lib')
       }
-    },
-    server: { // This is for dev server, not directly related to build issue
-      fs: {
-        allow: ['.', 'src', resolve(projectRoot, 'dist_svelte/build_output')]
-      }
     }
   }
 });

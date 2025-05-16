@@ -6,7 +6,7 @@
   "main": "dist/electron/main/index.js",
   "type": "module",
   "scripts": {
-    "dev": "npm run build && VITE_DEV_SERVER_URL=http://localhost:5173 electron-vite dev -- --trace-warnings",
+    "dev": "npm run build:svelte && VITE_DEV_SERVER_URL=http://localhost:5173 electron-vite dev -- --trace-warnings",
     "build": "npm run build:svelte && npm run build:electron && node scripts/copy-files.js",
     "build:svelte": "npm run prepare && npx vite build --config svelte.vite.config.js && npm run tree:dist_svelte",
     "build:electron": "electron-vite build",
