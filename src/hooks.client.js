@@ -2,72 +2,72 @@
 import { goto } from '$app/navigation';
 
 let initialLoadRecoveryAttempted = false;
+let handleErrorCallCount = 0; // Counter for handleError calls
 
 /** @type {import('@sveltejs/kit').HandleClientError} */
 export async function handleError({ error, event }) {
+    handleErrorCallCount++;
+    console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] initialLoadRecoveryAttempted (at start): ${initialLoadRecoveryAttempted}`);
+
     const errorDetails = {
         message: error?.message,
         status: error?.status,
         name: error?.name,
     };
     const eventDetails = {
-        // Log event.url as is, to see its type if it's not a string
-        url: event?.url,
+        url: event?.url, // Log as is, might be URL object
         routeId: event?.route?.id,
         params: event?.params,
     };
 
-    // Use try-catch for JSON.stringify as event.url might be a URL object
     try {
-        console.log('[hooks.client.js handleError] Error caught (DETAILS):', JSON.parse(JSON.stringify(errorDetails)));
-        console.log('[hooks.client.js handleError] Event (DETAILS - raw event.url might be an object):', JSON.parse(JSON.stringify(eventDetails)));
+        console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error caught (DETAILS):`, JSON.parse(JSON.stringify(errorDetails)));
+        console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Event (DETAILS - raw event.url might be an object):`, JSON.parse(JSON.stringify(eventDetails)));
     } catch (e) {
-        console.error('[hooks.client.js handleError] Error stringifying details for logging:', e);
-        console.log('[hooks.client.js handleError] Error caught (DETAILS - raw):', errorDetails);
-        console.log('[hooks.client.js handleError] Event (DETAILS - raw):', eventDetails);
+        console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error stringifying details for logging:`, e);
+        console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error caught (DETAILS - raw):`, errorDetails);
+        console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Event (DETAILS - raw):`, eventDetails);
     }
 
-
-    let eventUrlPathname = ''; // Initialize
-    console.log(`[hooks.client.js handleError] DIAGNOSTIC: Initial eventUrlPathname: "${eventUrlPathname}"`);
+    let eventUrlPathname = '';
+    console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: Initial eventUrlPathname: "${eventUrlPathname}"`);
 
     if (event && event.url) {
         if (typeof event.url === 'string') {
-            console.log(`[hooks.client.js handleError] DIAGNOSTIC: event.url is a STRING. Value: "${event.url}"`);
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: event.url is a STRING. Value: "${event.url}"`);
             try {
                 const parsedUrl = new URL(event.url);
                 eventUrlPathname = parsedUrl.pathname;
-                console.log(`[hooks.client.js handleError] DIAGNOSTIC: Successfully parsed STRING event.url.pathname: "${eventUrlPathname}"`);
+                console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: Successfully parsed STRING event.url.pathname: "${eventUrlPathname}"`);
             } catch (e) {
-                console.error('[hooks.client.js handleError] DIAGNOSTIC: CRITICAL - Could not parse STRING event.url.', {
+                console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: CRITICAL - Could not parse STRING event.url.`, {
                     url: event.url,
                     errorMessage: e.message,
                     errorName: e.name
                 });
             }
         } else if (typeof event.url === 'object' && event.url !== null && typeof event.url.pathname === 'string') {
-            // It's likely a URL object already
-            console.log(`[hooks.client.js handleError] DIAGNOSTIC: event.url is an OBJECT with a pathname. Value:`, event.url);
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: event.url is an OBJECT with a pathname. Value:`, event.url);
             eventUrlPathname = event.url.pathname;
-            console.log(`[hooks.client.js handleError] DIAGNOSTIC: Used event.url.pathname directly: "${eventUrlPathname}"`);
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: Used event.url.pathname directly: "${eventUrlPathname}"`);
         } else {
-            console.warn(`[hooks.client.js handleError] DIAGNOSTIC: event.url is neither a string nor a recognized URL object. Value:`, event.url);
+            console.warn(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: event.url is neither a string nor a recognized URL object. Value:`, event.url);
         }
     } else {
-        console.warn(`[hooks.client.js handleError] DIAGNOSTIC: SKIPPING URL processing - event or event.url is missing. Details:`, {
+        console.warn(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: SKIPPING URL processing - event or event.url is missing. Details:`, {
             eventExists: !!event,
             eventUrlExists: !!event?.url,
             eventUrlValue: event?.url
         });
     }
 
-    console.log(`[hooks.client.js handleError] DIAGNOSTIC: Final eventUrlPathname before isPathMatch check: "${eventUrlPathname}"`);
+    console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] DIAGNOSTIC: Final eventUrlPathname before isPathMatch check: "${eventUrlPathname}"`);
 
     const isFileProtocol = window.location.protocol === 'file:';
     const isErrorEligible = error && (error.status === 404 || (error.message && error.message.includes('Not found')));
     const isPathMatch = typeof eventUrlPathname === 'string' && eventUrlPathname.endsWith('/index.html');
 
-    console.log(`[hooks.client.js handleError] Recovery Check:
+    console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Recovery Check:
         isFileProtocol: ${isFileProtocol},
         !initialLoadRecoveryAttempted: ${!initialLoadRecoveryAttempted},
         errorExists: ${!!error},
@@ -76,27 +76,39 @@ export async function handleError({ error, event }) {
 
     if (
         isFileProtocol &&
-        !initialLoadRecoveryAttempted &&
+        !initialLoadRecoveryAttempted && // This is the key guard
         error &&
         isErrorEligible &&
         isPathMatch
     ) {
-        initialLoadRecoveryAttempted = true;
-        console.warn('[hooks.client.js handleError] Initial load resulted in "Not Found" for index.html. Attempting recovery to root (/).');
-        await new Promise(resolve => setTimeout(resolve, 50));
+        console.warn(`[hooks.client.js handleError CALL #${handleErrorCallCount}] ENTERING RECOVERY BLOCK. initialLoadRecoveryAttempted (before set): ${initialLoadRecoveryAttempted}`);
+        initialLoadRecoveryAttempted = true; // Set the flag immediately
+        console.warn(`[hooks.client.js handleError CALL #${handleErrorCallCount}] initialLoadRecoveryAttempted (after set): ${initialLoadRecoveryAttempted}. Attempting recovery to root (/).`);
+
+        await new Promise(resolve => setTimeout(resolve, 50)); // Keep the delay
 
         try {
-            await goto('/', { replaceState: true });
-            console.log('[hooks.client.js handleError] Recovery goto("/") attempted successfully.');
-            return {
-                message: 'Recovered from initial load error by navigating to root.'
-            };
+            window.location.hash = '/';
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Recovery goto("/") attempted successfully.`);
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] window.location.href IMMEDIATELY AFTER goto('/'): ${window.location.href}`);
+            return;
+            // --- END MODIFICATION ---
         } catch (gotoError) {
-            console.error('[hooks.client.js handleError] Error during recovery goto("/"):', gotoError);
+            console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error during recovery goto("/"):`, gotoError);
+            // If goto fails during recovery, return a proper error object for SvelteKit to display
+            return { message: `Recovery navigation failed: ${gotoError.message}`, status: 500 };
+        }
+    } else {
+        // Log why recovery was skipped
+        if (initialLoadRecoveryAttempted) {
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Proceeding with default error handling: Recovery already attempted.`);
+        } else {
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Proceeding with default error handling: Conditions not met for recovery.`);
         }
     }
 
-    console.log('[hooks.client.js handleError] Proceeding with default error handling or error not eligible for recovery (conditions not fully met).');
+    // Default return for errors not handled by the recovery logic above,
+    // or if recovery conditions weren't met.
     return {
         message: error?.message || 'An unexpected error occurred on the client'
     };
