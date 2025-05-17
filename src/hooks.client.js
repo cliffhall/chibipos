@@ -1,8 +1,7 @@
-// /Users/cliffhall/Projects/chibipos/src/hooks.client.js
-import { goto } from '$app/navigation';
+import {goto} from "$app/navigation";
 
 let initialLoadRecoveryAttempted = false;
-let handleErrorCallCount = 0; // Counter for handleError calls
+let handleErrorCallCount = 0;
 
 /** @type {import('@sveltejs/kit').HandleClientError} */
 export async function handleError({ error, event }) {
@@ -15,7 +14,7 @@ export async function handleError({ error, event }) {
         name: error?.name,
     };
     const eventDetails = {
-        url: event?.url, // Log as is, might be URL object
+        url: event?.url,
         routeId: event?.route?.id,
         params: event?.params,
     };
@@ -76,26 +75,23 @@ export async function handleError({ error, event }) {
 
     if (
         isFileProtocol &&
-        !initialLoadRecoveryAttempted && // This is the key guard
+        !initialLoadRecoveryAttempted &&
         error &&
         isErrorEligible &&
         isPathMatch
     ) {
         console.warn(`[hooks.client.js handleError CALL #${handleErrorCallCount}] ENTERING RECOVERY BLOCK. initialLoadRecoveryAttempted (before set): ${initialLoadRecoveryAttempted}`);
-        initialLoadRecoveryAttempted = true; // Set the flag immediately
+        initialLoadRecoveryAttempted = true;
         console.warn(`[hooks.client.js handleError CALL #${handleErrorCallCount}] initialLoadRecoveryAttempted (after set): ${initialLoadRecoveryAttempted}. Attempting recovery to root (/).`);
-
-        await new Promise(resolve => setTimeout(resolve, 50)); // Keep the delay
 
         try {
             window.location.hash = '/';
+            setTimeout(async () => await goto('/'), 600);
             console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Recovery goto("/") attempted successfully.`);
             console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] window.location.href IMMEDIATELY AFTER goto('/'): ${window.location.href}`);
             return;
-            // --- END MODIFICATION ---
         } catch (gotoError) {
             console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error during recovery goto("/"):`, gotoError);
-            // If goto fails during recovery, return a proper error object for SvelteKit to display
             return { message: `Recovery navigation failed: ${gotoError.message}`, status: 500 };
         }
     } else {
@@ -107,8 +103,6 @@ export async function handleError({ error, event }) {
         }
     }
 
-    // Default return for errors not handled by the recovery logic above,
-    // or if recovery conditions weren't met.
     return {
         message: error?.message || 'An unexpected error occurred on the client'
     };
