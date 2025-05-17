@@ -140,6 +140,7 @@ async function createWindow() {
     width: 1180,
     height: 713,
     resizable: isDev,
+    backgroundColor: "#191d22",
     webPreferences: {
       preload: path.join(_currentDirname, '../preload/preload.cjs'),
       contextIsolation: true,
