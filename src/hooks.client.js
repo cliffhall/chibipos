@@ -86,13 +86,25 @@ export async function handleError({ error, event }) {
 
         try {
             window.location.hash = '/';
-            setTimeout(async () => await goto('/'), 600);
-            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Recovery goto("/") attempted successfully.`);
-            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] window.location.href IMMEDIATELY AFTER goto('/'): ${window.location.href}`);
-            return;
-        } catch (gotoError) {
-            console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error during recovery goto("/"):`, gotoError);
-            return { message: `Recovery navigation failed: ${gotoError.message}`, status: 500 };
+            // Log that the hash is set and goto is scheduled
+            console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Hash set to '/'. Current href: ${window.location.href}. Scheduling goto('/') in 600ms.`);
+
+            setTimeout(async () => {
+                console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Executing delayed goto('/'). Current href before goto: ${window.location.href}`);
+                try {
+                    await goto('/');
+                    // Log success and href *after* the delayed goto completes
+                    console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Delayed goto('/') successful. Current href after goto: ${window.location.href}`);
+                } catch (delayedGotoError) {
+                    console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error during delayed goto('/'):`, delayedGotoError);
+                }
+            }, 600);
+
+            // This return happens immediately, before the setTimeout callback executes.
+            return; // Tell SvelteKit the initial error event is "handled"
+        } catch (initialError) { // Catch errors from setting hash, if any
+            console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error during initial recovery (setting hash):`, initialError);
+            return { message: `Recovery (setting hash) failed: ${initialError.message}`, status: 500 };
         }
     } else {
         // Log why recovery was skipped
