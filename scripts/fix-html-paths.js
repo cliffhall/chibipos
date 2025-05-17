@@ -16,67 +16,100 @@ if (!fs.existsSync(absoluteFilePath)) {
 
 try {
     let htmlContent = fs.readFileSync(absoluteFilePath, 'utf-8');
-    // const originalHtmlContent = htmlContent; // Keep for debugging if needed, but not strictly necessary for this fix
     let replacementsMade = 0;
 
     // 1. Ensure asset paths are relative (./_app/...)
+    // This part remains the same
     const attributePathRegex = /(href|src)=(")\/(?!(?:[a-z]+:)?\/\/)((?:_app|favicon\.png|assets|static|images)[^"]*)/gi;
     htmlContent = htmlContent.replace(attributePathRegex, (match, attribute, quote, pathPart) => {
-        // console.log(`[fix-html-paths] Fixing attribute path: ${match} to ./${pathPart}`); // Log from your output
         replacementsMade++;
         return `${attribute}=${quote}./${pathPart}`;
     });
 
     const dynamicImportPathRegex = /import\((["'])\/(?!(?:[a-z]+:)?\/\/)((?:_app)[^"']*)\1\)/gi;
     htmlContent = htmlContent.replace(dynamicImportPathRegex, (match, quote, pathPart) => {
-        // console.log(`[fix-html-paths] Fixing dynamic import path: ${match} to ./${pathPart}`); // Log from your output
         replacementsMade++;
         return `import(${quote}./${pathPart}${quote})`;
     });
 
-    // 2. Check if SvelteKit (with embedded:true) already set a dynamic base.
-    //    If it looks like `base: new URL(...)` or similar, SvelteKit handled it.
-    //    If it's `base: ""`, we need to fix it.
-    //    Regex to find the SvelteKit base object: captures prefix, current base value, and suffix.
+    // 2. Modify SvelteKit dynamic base path logic
     const sveltekitBaseObjectRegex = /(__sveltekit_\w+\s*=\s*\{[\s\S]*?base\s*:\s*)([^}]+)(\s*[\s\S]*?};)/;
-    // Example match breakdown:
-    // svelteKitBaseMatch[0] = full matched string e.g., __sveltekit_abc = { base: "" };
-    // svelteKitBaseMatch[1] = prefix part e.g., __sveltekit_abc = { base:
-    // svelteKitBaseMatch[2] = current base value e.g., ""
-    // svelteKitBaseMatch[3] = suffix part e.g.,  }; (includes surrounding whitespace/newlines)
-
     const svelteKitBaseMatch = htmlContent.match(sveltekitBaseObjectRegex);
-
     if (svelteKitBaseMatch) {
-        const prefix = svelteKitBaseMatch[1];
-        const currentBaseValue = svelteKitBaseMatch[2].trim(); // Trim to accurately check for "" or ''
-        const suffix = svelteKitBaseMatch[3];
+        const currentBaseValue = svelteKitBaseMatch[2].trim();
 
-        // Check if SvelteKit left it as an empty string
+        // --- MODIFICATION START ---
+        // If SvelteKit's base is already "" (empty string, as configured in svelte.config.js),
+        // leave it as is. This allows SvelteKit to operate relative to the document's base URI.
         if (currentBaseValue === `""` || currentBaseValue === `''`) {
-            // SvelteKit set base to "", so we inject our dynamic base
-            // This gets the directory of the current HTML file, including a trailing slash.
+            console.log('[fix-html-paths] SvelteKit base is already empty (""). No change made to SvelteKit base path. Relying on document base URI.');
+            // No replacement is made for the base path itself, so replacementsMade is not incremented here.
+        } else {
+            // This case would be hit if svelte.config.js paths.base was something other than ''.
+            // The original script's intent was to force a dynamic absolute path.
+            // For consistency with aiming for an empty base, you might reconsider this 'else' block's utility
+            // if your svelte.config.js always has paths.base = ''.
+            // However, keeping the original logic for this specific 'else' for now:
+            const prefix = svelteKitBaseMatch[1];
+            const suffix = svelteKitBaseMatch[3];
             const dynamicBase = 'location.pathname.substring(0, location.pathname.lastIndexOf("/") + 1)';
-
-            // Construct the new full string for the SvelteKit object
             const newSvelteKitObjectString = prefix + dynamicBase + suffix;
-
-            // Replace the original matched SvelteKit object string with the new one
             htmlContent = htmlContent.replace(svelteKitBaseMatch[0], newSvelteKitObjectString);
+            console.log(`[fix-html-paths] SvelteKit base was '${currentBaseValue}', changed to dynamic base: ${dynamicBase}`);
+            replacementsMade++;
+        }
+        // --- MODIFICATION END ---
 
-            console.log('[fix-html-paths] SvelteKit base was empty, injecting dynamic base: ' + dynamicBase);
+    } else {
+        console.warn('[fix-html-paths] Could not find __sveltekit_... base object in index.html.');
+    }
+
+    // 3. Ensure a Content Security Policy for file:// protocol exists
+    // This part remains the same
+    const cspMetaTagRegex = /<meta\s+http-equiv="Content-Security-Policy"[^>]*>/i;
+    const cspMatch = htmlContent.match(cspMetaTagRegex);
+
+    const fileProtocolCsp = "default-src 'self' file:; " +
+        "script-src 'self' 'unsafe-inline' file:; " +
+        "style-src 'self' 'unsafe-inline' file: https://fonts.googleapis.com; " +
+        "img-src 'self' data: file:; " +
+        "font-src 'self' file: https://fonts.gstatic.com; " +
+        "connect-src 'self' file:;";
+
+    if (cspMatch) {
+        let existingCspContent = '';
+        const contentMatch = cspMatch[0].match(/content="([^"]+)"/i);
+        if (contentMatch && contentMatch[1]) {
+            existingCspContent = contentMatch[1];
+        }
+        const modifiedCspTag = `<meta http-equiv="Content-Security-Policy" content="${fileProtocolCsp}">`;
+        if (cspMatch[0] !== modifiedCspTag) { // Only count as replacement if actually changed
+            htmlContent = htmlContent.replace(cspMatch[0], modifiedCspTag);
+            console.log(`[fix-html-paths] Modified existing CSP from "${existingCspContent}" to: ${fileProtocolCsp}`);
             replacementsMade++;
         } else {
-            console.log(`[fix-html-paths] SvelteKit seems to have already set a dynamic base: ${currentBaseValue}. No changes made to base path by this script.`);
+            console.log(`[fix-html-paths] Existing CSP matches target CSP. No change made to CSP.`);
         }
     } else {
-        // This warning is from your script, keeping it.
-        console.warn('[fix-html-paths] Could not find __sveltekit_... base object in index.html. Base path might be incorrect.');
+        console.warn('[fix-html-paths] Content-Security-Policy meta tag not found. Injecting a default CSP for file:// protocol.');
+        const newCspTag = `<meta http-equiv="Content-Security-Policy" content="${fileProtocolCsp}">`;
+        if (htmlContent.includes("</head>")) {
+            htmlContent = htmlContent.replace("</head>", `${newCspTag}\n</head>`);
+            replacementsMade++;
+        } else if (htmlContent.includes("<head>")) {
+            htmlContent = htmlContent.replace("<head>", `<head>\n${newCspTag}`);
+            replacementsMade++;
+        } else {
+            htmlContent = newCspTag + '\n' + htmlContent;
+            replacementsMade++;
+        }
+        console.log(`[fix-html-paths] Injected CSP: ${fileProtocolCsp}`);
     }
+
 
     if (replacementsMade > 0) {
         fs.writeFileSync(absoluteFilePath, htmlContent, 'utf-8');
-        console.log(`[fix-html-paths] Successfully updated HTML in ${absoluteFilePath}.`);
+        console.log(`[fix-html-paths] Successfully updated HTML in ${absoluteFilePath} (${replacementsMade} replacements).`);
     } else {
         console.log(`[fix-html-paths] No replacements made by this script in ${absoluteFilePath}.`);
     }

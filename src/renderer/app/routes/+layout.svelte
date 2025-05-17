@@ -12,6 +12,10 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores'; // Import the $page store
 
+	export const csr = true;
+	export const prerender = false;
+	export const ssr = false;
+
 	let { children } = $props();
 
 	function animateMenuChange() {
@@ -39,12 +43,27 @@
 		console.log(`[+layout.svelte DIAGNOSTIC] SvelteKit base value:`, svelteKitBaseValue);
 		// --- END DIAGNOSTIC ---
 
-		// --- DIAGNOSTIC: Log the $page store from SvelteKit ---
+		// --- DIAGNOSTIC: Log the $page store from SvelteKit (Enhanced) ---
 		const unsubscribePageStore = page.subscribe(currentPage => {
-			// To avoid excessive logging if the page store updates frequently for minor reasons,
-			// you might want to log only specific properties or log conditionally.
-			// For now, logging the whole object for thoroughness.
-			console.log('[+layout.svelte DIAGNOSTIC] $page store update:', JSON.parse(JSON.stringify(currentPage)));
+			if (currentPage) {
+				const pageDetails = {
+					url: currentPage.url?.href,
+					routeId: currentPage.route?.id,
+					status: currentPage.status,
+					error: currentPage.error ? { message: currentPage.error.message, status: currentPage.error.status, name: currentPage.error.name } : null,
+					params: currentPage.params,
+					// data: currentPage.data // Be careful logging data if it's large or sensitive
+				};
+				// Log a stringified version to avoid issues with console display of complex objects
+				try {
+					console.log('[+layout.svelte DIAGNOSTIC] $page store update:', JSON.parse(JSON.stringify(pageDetails)));
+				} catch (e) {
+					console.error('[+layout.svelte DIAGNOSTIC] Error stringifying $page store for logging:', e);
+					console.log('[+layout.svelte DIAGNOSTIC] $page store update (raw):', pageDetails); // Fallback to raw object
+				}
+			} else {
+				console.log('[+layout.svelte DIAGNOSTIC] $page store update: currentPage is null/undefined');
+			}
 		});
 		// --- END DIAGNOSTIC ---
 

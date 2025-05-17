@@ -11,10 +11,9 @@ const _currentFilename = fileURLToPath(_currentFileUrl);
 const _currentDirname = path.dirname(_currentFilename);
 const _nodeRequire = createRequire(_currentFileUrl);
 
-console.log('[Main Index DEBUG] Raw VITE_DEV_SERVER_URL from process.env:', process.env['VITE_DEV_SERVER_URL']);
-
 // Local module imports
 import { initializeSequelize } from '../renderer/app/lib/db/config.js';
+
 // --- DB Model Definitions ---
 import { defineCatProduct } from '../renderer/app/lib/db/models/catProduct.js';
 import { defineProduct } from '../renderer/app/lib/db/models/product.js';
@@ -48,6 +47,10 @@ if (_nodeRequire('electron-squirrel-startup')) {
 
 // electron-vite exposes this environment variable
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+console.log('[Main Index DEBUG] Raw VITE_DEV_SERVER_URL from process.env:',VITE_DEV_SERVER_URL);
+
+
+
 const isDev = !!VITE_DEV_SERVER_URL;
 
 console.log(`[Main Index DEBUG] Parsed VITE_DEV_SERVER_URL: ${VITE_DEV_SERVER_URL}, isDev: ${isDev}`);
@@ -155,16 +158,15 @@ async function createWindow() {
           dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${VITE_DEV_SERVER_URL}. Ensure it's running.`);
         });
   } else {
-    // _currentDirname in production will be /path/to/app/dist/electron/main
-    // renderer is at /path/to/app/dist/electron/renderer/index.html
     const indexPath = path.join(_currentDirname, '../renderer/index.html');
-    const prodUrl = `file://${indexPath}#/`;
+    const prodUrl = `file://${indexPath}`;
     console.log(`[Main Index] Attempting to load PROD URL: ${prodUrl}`);
     await mainWindow.loadURL(prodUrl)
-        .then(() => console.log(`[Main Index] Successfully loaded PROD file: ${indexPath}`))
+        // Ensure these log messages correctly refer to prodUrl or indexPath as intended
+        .then(() => console.log(`[Main Index] Successfully loaded PROD URL: ${prodUrl}`))
         .catch(err => {
-          console.error(`[Main Index] FAILED to load PROD file: ${indexPath}`, err);
-          dialog.showErrorBox("Application Error", `Could not load the application. File not found: ${indexPath}`);
+          console.error(`[Main Index] FAILED to load PROD URL: ${prodUrl}`, err);
+          dialog.showErrorBox("Application Error", `Could not load the application. URL: ${prodUrl}`);
         });
   }
 
