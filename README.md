@@ -18,20 +18,22 @@ brew install python@3.13
 
 ## Configuration Files
 ### Svelte Config
-- `svelte.config.js`
-  - Used for configuring Svelte itself
+- `svelte.config.js`- Used for configuring Svelte itself
 
 ### Vite Config for Svelte
-- `vite.svelte.config.js`
-  - Used for building Svelte app with Vite
+- `vite.svelte.config.js`- Used for building Svelte app with Vite
 
 ### Vite Config for Electron
-- `vite.electron.config.js`
-  - Used for building Electron app with Electron-Vite
+- `vite.electron.config.js`- Used for building Electron app with Electron-Vite
 
 ### Electron Builder Config
-- `electron-builder.yml`
-  - Used for configuring Electron Builder to create native packages
+- `electron-builder.yml`- Used for configuring Electron Builder to create native packages
+
+### Generated Folders
+Variously created when running any of the `build` or `dist` scripts
+- `dist/builder` - The native distributable package(s) or locally executable folder
+- `dist/electron` - The generated Electron app
+- `dist/svelte` - The generated Svelte app
 
 ## NPM Scripts
 ### Dev Server
@@ -77,7 +79,7 @@ brew install python@3.13
 
 ### Create Distribution Directory
 - `npm run dist:dir`
-  - Creates `dist/builder/[platform]/chibipos.app`
+  - Creates a locally executable app at `dist/builder/[platform]/chibipos.app`
   - Good for a quick test of the packaged app for your local platform
   - You can just copy it to your desktop and run it without having to install
   - Outputs to `dist/builder`
