@@ -8,7 +8,7 @@ export default defineConfig({
         sveltekit()
     ],
     build: {
-        outDir: 'dist_svelte',
+        outDir: 'dist/svelte',
         target: 'chrome114',
         emptyOutDir: true,
     },

@@ -14,8 +14,8 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-			pages: 'dist_svelte/build_output',
-			assets: 'dist_svelte/build_output',
+			pages: 'dist/svelte',
+			assets: 'dist/svelte',
 			fallback: 'index.html',
 			precompress: false,
 			strict: true,

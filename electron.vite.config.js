@@ -35,7 +35,7 @@ export default defineConfig({
     }
   },
   renderer: {
-    root: resolve(projectRoot, 'dist_svelte/build_output'),
+    root: resolve(projectRoot, 'dist/svelte'),
     build: {
       base: './',
       target: 'chrome114',
@@ -43,7 +43,7 @@ export default defineConfig({
       emptyOutDir: true,
       assetsInlineLimit: 0,
       rollupOptions: {
-        input: resolve(projectRoot, 'dist_svelte/build_output/index.html'),
+        input: resolve(projectRoot, 'dist/svelte/index.html'),
         output: {
           // Consistent naming for relative paths
           chunkFileNames: 'assets/[name]-[hash].js',

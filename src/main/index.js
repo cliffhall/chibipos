@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/src/main/index.js
 import { app, BrowserWindow, dialog, ipcMain, Menu, protocol } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -14,7 +13,7 @@ const _nodeRequire = createRequire(_currentFileUrl);
 // Local module imports
 import { initializeSequelize } from '../renderer/app/lib/db/config.js';
 
-// --- DB Model Definitions ---
+// Model Definitions
 import { defineCatProduct } from '../renderer/app/lib/db/models/catProduct.js';
 import { defineProduct } from '../renderer/app/lib/db/models/product.js';
 import { defineDailySales } from '../renderer/app/lib/db/models/daily_sales.js';
@@ -24,7 +23,7 @@ import { defineTicketDetails } from '../renderer/app/lib/db/models/ticketDetails
 import { setupAssociations } from '../renderer/app/lib/db/associations.js';
 import { initializeApi } from './api.js';
 
-// Robustly get Sequelize constructor and Op
+// Handle sequalize constructor, it's not exported properly
 import sequelizePackage from 'sequelize';
 const { Sequelize: ResolvedSequelizeConstructor, Op: ResolvedOp } = sequelizePackage;
 
@@ -248,8 +247,8 @@ app.whenReady().then(async () => {
         } else {
           // DEVELOPMENT MODE:
           // _currentDirname is .../dist/electron/main when running electron-vite dev
-          // We need to go up three levels to reach the project root, then to dist_svelte
-          imageFilePath = path.join(_currentDirname, '..', '..', '..', 'dist_svelte', 'build_output', 'img', urlPath);
+          // We need to go up three levels to reach the project root, then to dist/svelte
+          imageFilePath = path.join(_currentDirname, '..', '..', '..', 'dist', 'svelte', 'img', urlPath);
         }
         imageFilePath = path.normalize(imageFilePath);
         console.log(`[appimg protocol] Request for '${request.url}', resolved to: '${imageFilePath}'`);
