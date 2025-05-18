@@ -1,8 +1,11 @@
 # ChibiPOS
 
 ## Local Developer Setup
-* Running locally requires <a href="https://nodejs.org/en/download" target="_blank">Node and npm be installed</a>. 
-* To fix the issue of `node_gyp` failing when compiling binaries for Electron 35, you may need to do this:
+### Node
+* Running locally requires <a href="https://nodejs.org/en/download" target="_blank">Node and npm be installed</a>.
+
+### Python Version
+* If`node_gyp` fails when compiling binaries for Electron 35, you may need to do this:
 ```shell
 /opt/homebrew/opt/python@3.13/bin/python3.13 -m pip install --upgrade pip setuptools wheel --break-system-packages --user
 ```
@@ -12,15 +15,16 @@
 - `cd /path/to/chibipos/`
 - `npm install`
 
-## Development Mode
+## NPM Scripts
+### Dev Server
 - `npm run dev`
   - Builds the Svelte app 
   - Sets the `VITE_DEV_SERVER_URL` environment var
-  - Starts the electron-vite dev server
+  - Starts the `electron-vite` dev server
 
 ### Build
 - `npm run build`
-  - Builds the Svelte app and the electron app
+  - Builds the Svelte app and the Electron app
   - Combines the two builds with the `scripts/copy-files.js` script
 
 ### Build Svelte
