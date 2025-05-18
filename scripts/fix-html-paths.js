@@ -9,7 +9,7 @@ if (!filePath) {
 }
 const absoluteFilePath = path.resolve(filePath);
 if (!fs.existsSync(absoluteFilePath)) {
-    console.error(`Error: File not found at ${absoluteFilePath}`);
+    console.error(`Nothing to fix at path: ${absoluteFilePath}`);
     process.exit(1);
 }
 
