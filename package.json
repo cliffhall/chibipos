@@ -15,8 +15,8 @@
     "dist:dir": "npm run build && electron-builder --dir",
     "dist:all": "npm run build && electron-builder -mwl",
     "prepare": "svelte-kit sync",
-    "format": "prettier --write .",
-    "lint": "prettier --check . && eslint ."
+    "format": "prettier --write ./src ./scripts",
+    "lint": "prettier --check ./src ./scripts && eslint ./src ./scripts"
   },
   "keywords": [],
   "author": "guillermo",

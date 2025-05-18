@@ -1,36 +1,42 @@
-// /src/main/printing/printTicket.js
-import escpos from 'escpos';
-import escposNetwork from 'escpos-network';
-import escposUSB from 'escpos-usb'; // Assuming this is used by getPrinter
-import path from 'path'; // Ensure path is imported
+import escpos from "escpos";
+import escposNetwork from "escpos-network";
+import escposUSB from "escpos-usb";
+import path from "path";
 
 escpos.USB = escposUSB;
 escpos.Network = escposNetwork;
 
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from "node:url";
 
 // Use unique names for your derived constants
-const _currentFileUrl_printTicket = import.meta.url; // Unique suffix
+const _currentFileUrl_printTicket = import.meta.url;
 const _currentFilename_printTicket = fileURLToPath(_currentFileUrl_printTicket);
 const _currentDirname_printTicket = path.dirname(_currentFilename_printTicket);
 
 export default async function printTicket(event, data) {
-  // Use your renamed _currentDirname_printTicket
-  const logoPath = path.resolve(_currentDirname_printTicket, '../../static/img/chibi_logo-print.png');
+  const logoPath = path.resolve(
+    _currentDirname_printTicket,
+    "../../static/img/chibi_logo-print.png",
+  );
   // ************************************
   // Print Data
   // ************************************
   const { ticket, details, printerIP } = data;
 
   const time = new Date(ticket.date).toLocaleTimeString();
-  const dateStr = new Date(ticket.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }); // Renamed to avoid conflict
+  const dateStr = new Date(ticket.date).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }); // Renamed to avoid conflict
   const timeRowPadding = 32 - time.length - dateStr.length;
 
   const minRows = 6;
-  const detailPaddingRows = details.length >= minRows ? 0 : (minRows - details.length) * 2;
+  const detailPaddingRows =
+    details.length >= minRows ? 0 : (minRows - details.length) * 2;
 
   const order = 320; // This seems like a fixed value, ensure it's intended
-  const totalText = 'TOTAL:';
+  const totalText = "TOTAL:";
   const totalAmount = `$${ticket.total_amount.toFixed(2)}`;
   const totalRowPadding = 32 - totalAmount.length - totalText.length;
 
@@ -39,25 +45,26 @@ export default async function printTicket(event, data) {
   const subtotalAmount = `$${ticket.subtotal.toFixed(2)}`;
 
   const cardAmount = `$${ticket.card.toFixed(2)}`;
-  const cardLabel = 'tarjeta:';
+  const cardLabel = "tarjeta:";
   const cardPadding = 48 - cardAmount.length - cardLabel.length;
 
   const receivedCashAmount = `$${ticket.cash_received.toFixed(2)}`;
-  const cashLabel = 'efectivo:';
+  const cashLabel = "efectivo:";
   const cashPadding = 48 - receivedCashAmount.length - cashLabel.length;
 
   const changeAmount = `$${ticket.change.toFixed(2)}`;
-  const changeLabel = 'CAMBIO:';
+  const changeLabel = "CAMBIO:";
   const changePadding = 32 - changeAmount.length - changeLabel.length;
 
-  console.log('Resolved Image Path:', logoPath);
+  console.log("Resolved Image Path:", logoPath);
 
   // ************************************
   // Printing orders
   // ************************************
   let device; // Declare device here to be accessible in the promise
   try {
-    function getPrinterInstance() { // Renamed to avoid conflict with escpos.Printer
+    function getPrinterInstance() {
+      // Renamed to avoid conflict with escpos.Printer
       const usbDevices = escpos.USB.findPrinter();
       if (usbDevices && usbDevices.length > 0) {
         device = new escpos.USB(); // Assign to the outer scope device
@@ -73,7 +80,7 @@ export default async function printTicket(event, data) {
     const image = await new Promise((resolve, reject) => {
       escpos.Image.load(logoPath, (img) => {
         if (!img) {
-          reject(new Error('Failed to load image'));
+          reject(new Error("Failed to load image"));
         } else {
           resolve(img);
         }
@@ -81,107 +88,107 @@ export default async function printTicket(event, data) {
     });
 
     await new Promise((resolve, reject) => {
-      if (!device) { // Safety check
-        reject(new Error('Printer device not initialized before open.'));
+      if (!device) {
+        // Safety check
+        reject(new Error("Printer device not initialized before open."));
         return;
       }
       device.open((deviceError) => {
         if (deviceError) {
-          console.error('Printer error: ', deviceError);
+          console.error("Printer error: ", deviceError);
           reject(new Error(`Printer error: ${deviceError.message}`));
         }
         resolve();
       });
     });
 
-    await printer
-        .align('CT')
-        .image(image, 'd24');
+    await printer.align("CT").image(image, "d24");
 
     printer
-        .feed(1)
-        // Order
-        .font('B')
-        .size(1, 1)
-        .align('LT')
-        .style('B')
-        .text(`Orden: ${order}`) // Using the 'order' variable
-        // Line
-        .text('-'.repeat(32))
-        // Time
-        .style('NORMAL')
-        .text(`${dateStr}${' '.repeat(timeRowPadding)}${time}`) // Using dateStr
-        // Line
-        .text('-'.repeat(32))
-        .feed(1);
+      .feed(1)
+      // Order
+      .font("B")
+      .size(1, 1)
+      .align("LT")
+      .style("B")
+      .text(`Orden: ${order}`) // Using the 'order' variable
+      // Line
+      .text("-".repeat(32))
+      // Time
+      .style("NORMAL")
+      .text(`${dateStr}${" ".repeat(timeRowPadding)}${time}`) // Using dateStr
+      // Line
+      .text("-".repeat(32))
+      .feed(1);
 
     // Print ticket details
-    details.forEach(detail => {
+    details.forEach((detail) => {
       printer
-          .font('A')
-          .style('NORMAL')
-          .size(0, 0)
-          .lineSpace(45)
-          .tableCustom([
-            { text: `${detail.quantity}  `, align: 'RIGHT', width: 0.1 },
-            { text: detail.product.name, align: 'LEFT', width: 0.5 },
-            { text: `$${detail.price}`, align: 'RIGHT', width: 0.2 },
-            { text: `$${detail.price * detail.quantity}`, align: 'RIGHT', width: 0.2 }
-          ])
-          .feed(0);
+        .font("A")
+        .style("NORMAL")
+        .size(0, 0)
+        .lineSpace(45)
+        .tableCustom([
+          { text: `${detail.quantity}  `, align: "RIGHT", width: 0.1 },
+          { text: detail.product.name, align: "LEFT", width: 0.5 },
+          { text: `$${detail.price}`, align: "RIGHT", width: 0.2 },
+          {
+            text: `$${detail.price * detail.quantity}`,
+            align: "RIGHT",
+            width: 0.2,
+          },
+        ])
+        .feed(0);
     });
     for (let i = 0; i < detailPaddingRows; i++) {
       printer.feed(1);
     }
     // spacing
     printer.feed(1);
-    printer
-        .font('B')
-        .size(1, 1)
-        .text('-'.repeat(32));
+    printer.font("B").size(1, 1).text("-".repeat(32));
     // discount
     if (ticket.discount_amount > 0) {
       printer
-          .font('B')
-          .style('NORMAL')
-          .align('RT')
-          .size(1, 1)
-          .text(`${subtotalAmount}`)
-          .feed(1)
-          .text(`${discountRateText}: ${discountAmountText}`) // Using renamed vars
-          .feed(1);
+        .font("B")
+        .style("NORMAL")
+        .align("RT")
+        .size(1, 1)
+        .text(`${subtotalAmount}`)
+        .feed(1)
+        .text(`${discountRateText}: ${discountAmountText}`) // Using renamed vars
+        .feed(1);
     }
     // total
     printer
-        .font('B')
-        .style('B')
-        .size(1, 1)
-        .text(`${totalText}${' '.repeat(totalRowPadding)}${totalAmount}`)
-        .text('-'.repeat(32));
+      .font("B")
+      .style("B")
+      .size(1, 1)
+      .text(`${totalText}${" ".repeat(totalRowPadding)}${totalAmount}`)
+      .text("-".repeat(32));
 
     // cash
     if (ticket.cash > 0) {
       printer
-          .style('NORMAL')
-          .font('A')
-          .size(0, 0)
-          .text(`${cardLabel}${' '.repeat(cardPadding)}${cardAmount}`)
-          .feed(1)
-          .text(`${cashLabel}${' '.repeat(cashPadding)}${receivedCashAmount}`)
-          .feed(1)
-          .style('B')
-          .font('B')
-          .size(1, 1)
-          .text(`${changeLabel}${' '.repeat(changePadding)}${changeAmount}`)
-          .feed(1);
+        .style("NORMAL")
+        .font("A")
+        .size(0, 0)
+        .text(`${cardLabel}${" ".repeat(cardPadding)}${cardAmount}`)
+        .feed(1)
+        .text(`${cashLabel}${" ".repeat(cashPadding)}${receivedCashAmount}`)
+        .feed(1)
+        .style("B")
+        .font("B")
+        .size(1, 1)
+        .text(`${changeLabel}${" ".repeat(changePadding)}${changeAmount}`)
+        .feed(1);
     } else {
       printer
-          .style('NORMAL')
-          .font('A')
-          .align('CT')
-          .size(0, 0)
-          .text('pago con tarjeta')
-          .feed(1);
+        .style("NORMAL")
+        .font("A")
+        .align("CT")
+        .size(0, 0)
+        .text("pago con tarjeta")
+        .feed(1);
     }
 
     const catWithEars = `
@@ -189,36 +196,29 @@ export default async function printTicket(event, data) {
   (=^o^=)  
   (  __  )  
   `;
-    printer
-        .feed(2)
-        .align('CT')
-        .style('b')
-        .text(catWithEars);
+    printer.feed(2).align("CT").style("b").text(catWithEars);
 
     // Arigato
     printer
-        .font('A')
-        .size(0, 0)
-        .align('CT')
-        .style('NORMAL')
-        .text('arigato')
-        .feed(2)
-        .text('');
+      .font("A")
+      .size(0, 0)
+      .align("CT")
+      .style("NORMAL")
+      .text("arigato")
+      .feed(2)
+      .text("");
 
     // end
     await new Promise((resolve) => {
-      printer
-          .cut()
-          .close(() => {
-            console.log('ticket print completed');
-            resolve();
-          });
+      printer.cut().close(() => {
+        console.log("ticket print completed");
+        resolve();
+      });
     });
 
-    return { success: true, message: 'ticket print completed' };
-
+    return { success: true, message: "ticket print completed" };
   } catch (error) {
-    console.error('Print failed: ', error);
-    return { success: false, message: 'Error imprimiendo' };
+    console.error("Print failed: ", error);
+    return { success: false, message: "Error imprimiendo" };
   }
 }
