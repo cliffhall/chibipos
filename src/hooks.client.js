@@ -86,14 +86,12 @@ export async function handleError({ error, event }) {
 
         try {
             window.location.hash = '/';
-            // Log that the hash is set and goto is scheduled
             console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Hash set to '/'. Current href: ${window.location.href}. Scheduling goto('/') in 600ms.`);
 
             setTimeout(async () => {
                 console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Executing delayed goto('/'). Current href before goto: ${window.location.href}`);
                 try {
                     await goto('/');
-                    // Log success and href *after* the delayed goto completes
                     console.log(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Delayed goto('/') successful. Current href after goto: ${window.location.href}`);
                 } catch (delayedGotoError) {
                     console.error(`[hooks.client.js handleError CALL #${handleErrorCallCount}] Error during delayed goto('/'):`, delayedGotoError);

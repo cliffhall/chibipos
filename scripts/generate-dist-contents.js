@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/scripts/generate-dist-contents.js
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

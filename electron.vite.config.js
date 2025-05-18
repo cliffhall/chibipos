@@ -1,4 +1,3 @@
-// /Users/cliffhall/Projects/chibipos/electron.vite.config.js
 import { resolve } from 'path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
@@ -36,8 +35,6 @@ export default defineConfig({
     }
   },
   renderer: {
-    // For the build, the root is where the SvelteKit output is.
-    // electron-vite build will take input from here.
     root: resolve(projectRoot, 'dist_svelte/build_output'),
     build: {
       base: './',
@@ -46,8 +43,6 @@ export default defineConfig({
       emptyOutDir: true,
       assetsInlineLimit: 0,
       rollupOptions: {
-        // Input is index.html from SvelteKit's build output,
-        // relative to the `root` defined above.
         input: resolve(projectRoot, 'dist_svelte/build_output/index.html'),
         output: {
           // Consistent naming for relative paths

@@ -1,11 +1,10 @@
-// /Users/cliffhall/Projects/chibipos/svelte.config.js
 import path from 'path';
 import { fileURLToPath } from 'url';
 import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename); // This is the project root
+const __dirname = path.dirname(__filename);
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

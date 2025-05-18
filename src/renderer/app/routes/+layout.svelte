@@ -4,7 +4,6 @@
 	import '$lib/styles/reset.scss';
 	import '$lib/styles/base.scss';
 
-	// Component and store imports
 	import Nav from '$lib/components/Nav.svelte';
 	import PrinterConfig from '$lib/components/PrinterConfig.svelte';
 	import { printerConfig } from '../lib/stores/shared.svelte.js';
@@ -41,9 +40,7 @@
 		}
 		console.log(`[+layout.svelte DIAGNOSTIC] SvelteKit base object key: ${svelteKitBaseFound}`);
 		console.log(`[+layout.svelte DIAGNOSTIC] SvelteKit base value:`, svelteKitBaseValue);
-		// --- END DIAGNOSTIC ---
 
-		// --- DIAGNOSTIC: Log the $page store from SvelteKit (Enhanced) ---
 		const unsubscribePageStore = page.subscribe(currentPage => {
 			if (currentPage) {
 				const pageDetails = {
@@ -52,9 +49,7 @@
 					status: currentPage.status,
 					error: currentPage.error ? { message: currentPage.error.message, status: currentPage.error.status, name: currentPage.error.name } : null,
 					params: currentPage.params,
-					// data: currentPage.data // Be careful logging data if it's large or sensitive
 				};
-				// Log a stringified version to avoid issues with console display of complex objects
 				try {
 					console.log('[+layout.svelte DIAGNOSTIC] $page store update:', JSON.parse(JSON.stringify(pageDetails)));
 				} catch (e) {
@@ -65,9 +60,8 @@
 				console.log('[+layout.svelte DIAGNOSTIC] $page store update: currentPage is null/undefined');
 			}
 		});
-		// --- END DIAGNOSTIC ---
 
-		let removeMenuFileListener = () => {}; // Default to no-op
+		let removeMenuFileListener = () => {};
 
 		if (window.api && typeof window.api.onMenuFileOpened === 'function') {
 			console.log('[+layout.svelte onMount] Setting up onMenuFileOpened listener.');
@@ -99,9 +93,9 @@
 		// Cleanup function for onMount
 		return () => {
 			console.log('[+layout.svelte onUnmount] Cleaning up listeners.');
-			unsubscribePageStore(); // Unsubscribe from $page store
+			unsubscribePageStore();
 			if (typeof removeMenuFileListener === 'function') {
-				removeMenuFileListener(); // Remove the menu file listener
+				removeMenuFileListener();
 			}
 		};
 	});

@@ -7,11 +7,8 @@
 		console.log(`[Nav.svelte DIAGNOSTIC] Current window.location.href (before goto): ${window.location.href}`);
 		try {
 			await goto(path); // Use SvelteKit's goto
-			// After goto, SvelteKit's $page store should update, which will trigger the
-			// diagnostic in +layout.svelte.
 			console.log(`[Nav.svelte DIAGNOSTIC] goto('${path}') completed. New window.location.href (after goto): ${window.location.href}`);
 		} catch (error) {
-			// Errors during goto usually mean the path couldn't be resolved by SvelteKit's router
 			console.error(`[Nav.svelte DIAGNOSTIC] Error during goto('${path}'):`, error);
 		}
 	}
@@ -76,7 +73,6 @@
 
 <nav>
 	<ul class="links">
-		<!-- Use buttons calling navigateTo. SvelteKit's goto expects paths like /tickets, not #/tickets -->
 		<button class="nav-button-link" onclick={() => navigateTo('/')}>Venta</button>
 		<button class="nav-button-link" onclick={() => navigateTo('/tickets')}>Tickets</button>
 		<button class="nav-button-link" onclick={() => navigateTo('/reportes')}>Reportes</button>

@@ -24,7 +24,7 @@
 <li class="product" in:fly={{ y: 20, duration: 200 }} out:fade={{ duration: 200 }}>
 	<button onclick={addToCart}>
 		{#if product.image}
-			<img src={`/img/products/${product.image}`} alt={product.name} draggable="false" />
+			<img src={`appimg://products/${product.image}`} alt={product.name} draggable="false" />
 		{:else}
 			<p>{product.name}</p>
 		{/if}

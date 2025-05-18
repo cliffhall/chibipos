@@ -3,8 +3,6 @@
 import { readFile } from 'fs/promises';
 import CryptoJS from 'crypto-js';
 
-// Printing function imports - adjust path if printing folder is not a sibling of 'main'
-// Assuming src/printing/ structure
 import printTicket from './printing/printTicket.js';
 import printKitchen from './printing/printKitchen.js';
 import printSale from './printing/printSale.js';

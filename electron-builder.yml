@@ -1,33 +1,28 @@
 appId: dev.castant.chibipos
 productName: chibipos
+
 # Output directory for electron-builder
 directories:
   output: dist/builder
-  # Directory where electron-vite has built the app (main.js, preload.js, renderer folder)
   app: dist/electron
-  buildResources: build # Keep this if you have a 'build' folder with icons, etc.
 
+  # Include all files from the 'app' directory (dist/electron)
 files:
-  - filter: # Include all files from the 'app' directory (dist/electron)
+  - filter:
       - "**/*"
-  # Exclude source maps from production build if you don't need them
   - "!**/*.map"
-  # Exclude development/config files that might accidentally get copied into dist/electron
-  - "!node_modules/@electron/**" # Example, adjust if needed
+  - "!node_modules/@electron/**"
 
 # Files to unpack from asar archive
 asarUnpack:
-  - "**/*.node" # General rule for native modules
+  - "**/*.node"
   - "node_modules/sqlite3/**"
-  - "node_modules/gsap/**" # If gsap-bonus.tgz is extracted here and needs unpacking
+  - "node_modules/gsap/**"
 
 # Extra files to be copied to the resources directory
 extraResources:
-  - from: ./database.sqlite # Path relative to project root
-    to: database.sqlite    # Destination path within app.asar.unpacked/resources or resources
-  # If you have other resources like icons in a 'build' folder:
-  # - from: build/icon.ico
-  #   to: icon.ico
+  - from: ./database.sqlite
+    to: database.sqlite
 
 win:
   executableName: chibipos
@@ -43,11 +38,6 @@ nsis:
   createDesktopShortcut: always
 
 mac:
-  # entitlements: build/entitlements.mac.plist # Keep if you have this file
-  # entitlementsInherit: build/entitlements.mac.plist # Keep if you have this file
-  # extendInfo: # Keep if you have these
-  #   - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-  #   - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false # Set to true if you have Apple Developer ID and want to notarize
   target:
     - target: dmg
@@ -60,15 +50,9 @@ dmg:
 linux:
   target:
     - AppImage
-    # - snap # Keep if needed
     - deb
   maintainer: guillermo <gcastant@gmail.com>
   category: Utility
 
 appImage:
   artifactName: ${name}-${version}.${ext}
-
-# npmRebuild: false # electron-builder usually handles this well. Keep false unless issues.
-# publish: # Configure later if you plan to use auto-updates
-#   provider: generic
-#   url: https://example.com/auto-updates

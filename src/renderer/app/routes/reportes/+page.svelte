@@ -6,7 +6,6 @@
 	import printIcon from '$lib/img/icons/print.svg';
 	// Assuming printerConfig is correctly defined in your stores
 	// For this example, if it's not central, we can mock it or ensure it's imported
-	// import { printerConfig } from '../../lib/stores/shared.svelte.js'; // Original path
 	import { printerConfig } from '../../lib/stores/shared.svelte.js';
 
 	import { onMount } from 'svelte'; // Import onMount

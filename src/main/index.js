@@ -1,5 +1,5 @@
 // /Users/cliffhall/Projects/chibipos/src/main/index.js
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, protocol } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -49,14 +49,10 @@ if (_nodeRequire('electron-squirrel-startup')) {
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 console.log('[Main Index DEBUG] Raw VITE_DEV_SERVER_URL from process.env:',VITE_DEV_SERVER_URL);
 
-
-
 const isDev = !!VITE_DEV_SERVER_URL;
-
 console.log(`[Main Index DEBUG] Parsed VITE_DEV_SERVER_URL: ${VITE_DEV_SERVER_URL}, isDev: ${isDev}`);
 
 const CRYPTO_KEY = process.env.CHIBIPOS_CRYPTO_KEY || 'your-default-super-secret-key-for-dev';
-
 if (CRYPTO_KEY === 'your-default-super-secret-key-for-dev' && !isDev) {
   console.warn('[Main Index] WARNING: Using default CRYPTO_KEY in production. This is insecure!');
 }
@@ -101,7 +97,6 @@ async function initializeDatabase() {
       throw new Error("Sequelize instance is not valid after initialization.");
     }
 
-    // Define models and store them
     dbModels.CatProduct = defineCatProduct(sequelizeInstance);
     dbModels.Product = defineProduct(sequelizeInstance);
     dbModels.Ticket = defineTicket(sequelizeInstance);
@@ -109,12 +104,10 @@ async function initializeDatabase() {
     dbModels.TicketDetails = defineTicketDetails(sequelizeInstance);
     dbModels.DailySalesDetails = defineDailySalesDetails(sequelizeInstance);
 
-    // Setup associations between models
     setupAssociations(sequelizeInstance);
 
-    await sequelizeInstance.sync({ alter: false }); // Consider { force: isDev } for easier dev resets
+    await sequelizeInstance.sync({ alter: false });
     console.log('[Main Index] Database schema synchronized.');
-
     return true;
   } catch (error) {
     console.error('[Main Index] Error during database initialization process:', error);
@@ -134,7 +127,6 @@ async function initializeDatabase() {
   }
 }
 
-
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1180,
@@ -151,9 +143,7 @@ async function createWindow() {
   if (isDev && VITE_DEV_SERVER_URL) {
     console.log(`[Main Index] Attempting to load DEV URL: ${VITE_DEV_SERVER_URL}`);
     await mainWindow.loadURL(VITE_DEV_SERVER_URL)
-        .then(() => {
-          console.log(`[Main Index] Successfully initiated DEV load for: ${VITE_DEV_SERVER_URL}`);
-        })
+        .then(() => console.log(`[Main Index] Successfully initiated DEV load for: ${VITE_DEV_SERVER_URL}`))
         .catch(err => {
           console.error(`[Main Index] FAILED to load DEV URL: ${VITE_DEV_SERVER_URL}`, err);
           dialog.showErrorBox("Dev Server Error", `Could not connect to Vite dev server at ${VITE_DEV_SERVER_URL}. Ensure it's running.`);
@@ -163,7 +153,6 @@ async function createWindow() {
     const prodUrl = `file://${indexPath}`;
     console.log(`[Main Index] Attempting to load PROD URL: ${prodUrl}`);
     await mainWindow.loadURL(prodUrl)
-        // Ensure these log messages correctly refer to prodUrl or indexPath as intended
         .then(() => console.log(`[Main Index] Successfully loaded PROD URL: ${prodUrl}`))
         .catch(err => {
           console.error(`[Main Index] FAILED to load PROD URL: ${prodUrl}`, err);
@@ -180,16 +169,13 @@ async function createWindow() {
     }
   });
 
-//  if (isDev) {
+  if (isDev) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
-//  }
+  }
 
   return mainWindow;
 }
 
-// *****************
-// MENUS
-// *****************
 const menuTemplate = [
   {
     label: app.name,
@@ -245,34 +231,66 @@ if (process.platform === 'darwin') {
   }
 }
 
-
-// App Lifecycle
+// Single App Lifecycle block
 app.whenReady().then(async () => {
-  console.log('[Main Index] App is ready.'); // Added for clarity
+  console.log('[Main Index] App is ready and initializing...');
+
+  // --- REGISTER CUSTOM PROTOCOL FOR IMAGES ---
+  if (protocol && typeof protocol.registerFileProtocol === 'function') {
+    console.log('[Main Index] Attempting to register "appimg" protocol...');
+    protocol.registerFileProtocol('appimg', (request, callback) => {
+      try {
+        const urlPath = request.url.slice('appimg://'.length);
+        let imageFilePath;
+
+        if (app.isPackaged) {
+          imageFilePath = path.join(process.resourcesPath, 'app.asar', 'renderer', 'img', urlPath);
+        } else {
+          // DEVELOPMENT MODE:
+          // _currentDirname is .../dist/electron/main when running electron-vite dev
+          // We need to go up three levels to reach the project root, then to dist_svelte
+          imageFilePath = path.join(_currentDirname, '..', '..', '..', 'dist_svelte', 'build_output', 'img', urlPath);
+        }
+        imageFilePath = path.normalize(imageFilePath);
+        console.log(`[appimg protocol] Request for '${request.url}', resolved to: '${imageFilePath}'`);
+
+        // Check if file exists before calling back
+        if (fs.existsSync(imageFilePath)) {
+          callback({ path: imageFilePath });
+        } else {
+          console.error(`[appimg protocol] File NOT FOUND at resolved path: '${imageFilePath}' for request '${request.url}'`);
+          callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
+        }
+
+      } catch (error) {
+        console.error(`[appimg protocol] Error processing request ${request.url}:`, error);
+        callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
+      }
+    });
+    console.log('[Main Index] Custom protocol "appimg" registered.');
+  } else {
+    console.error('[Main Index] CRITICAL: Electron `protocol` module or `registerFileProtocol` is not available!');
+    // This is a critical failure if your images rely on this protocol.
+    dialog.showErrorBox("Application Error", "Failed to set up image loading protocols. The application cannot continue.");
+    app.quit();
+    return; // Prevent further execution
+  }
+  // --- END CUSTOM PROTOCOL ---
 
   const dbInitialized = await initializeDatabase();
   if (!dbInitialized) {
     console.error('[Main Index] Database initialization failed. Quitting app.');
-    if (app && typeof app.quit === 'function' && (typeof app.isQuitting !== 'function' || !app.isQuitting())) {
-      app.quit();
-    } else if (app && typeof app.isQuitting !== 'function') {
-      console.error("[Main Index] App ready but DB not initialized, and app.isQuitting is not a function. Forcing exit.");
-      process.exit(1);
-    }
+    // Quit logic is already in initializeDatabase, but an explicit return is good.
     return;
   }
   console.log('[Main Index] Database initialized successfully.');
 
-  // ***** MOVE INITIALIZE API CALL HERE *****
-  // Initialize IPC handlers BEFORE the window is created and loads content.
-  // All dependencies for initializeApi (ipcMain, dbModels, sequelizeInstance, etc.)
-  // are available at this point.
   console.log('[Main Index] Initializing API handlers...');
   initializeApi(ipcMain, dbModels, sequelizeInstance, ResolvedOp, dialog, CRYPTO_KEY, BrowserWindow, app);
   console.log('[Main Index] API handlers initialized.');
 
   console.log('[Main Index] Creating main window...');
-  await createWindow(); // Now create the window. Renderer will load and find handlers ready.
+  await createWindow();
   console.log('[Main Index] Main window created.');
 
   const menu = Menu.buildFromTemplate(menuTemplate);
@@ -282,13 +300,20 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       console.log('[Main Index] App activated and no windows open, creating window...');
-      createWindow(); // API handlers are already set up if we need to recreate
+      createWindow();
     }
   });
+}).catch(initializationError => {
+  // Catch any unhandled errors from the app.whenReady() promise chain
+  console.error('[Main Index] Unhandled error during app initialization:', initializationError);
+  dialog.showErrorBox("Critical Application Error", `A critical error occurred during startup: ${initializationError.message}. The application will now close.`);
+  if (app && typeof app.quit === 'function') {
+    app.quit();
+  }
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  console.log('[Main Index] Event: window-all-closed. All windows are closed.');
+  console.log('[Main Index] Calling app.quit() now.');
+  app.quit();
 });

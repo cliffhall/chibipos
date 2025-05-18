@@ -1,4 +1,3 @@
-// /src/preload.js
 import { ipcRenderer, contextBridge } from 'electron';
 
 console.log('[Preload Script] Attempting to execute preload.cjs...');
@@ -43,20 +42,12 @@ try {
 
   };
 
-  console.log('[Preload Script] API object defined. Attempting to expose API.');
   contextBridge.exposeInMainWorld('api', api);
   console.log('[Preload Script] contextBridge.exposeInMainWorld("api", ...) SUCCEEDED.');
 
-  // Listen for the trigger from the main process menu (src/main/index.js)
-  // This is for when the *native Electron menu item* "Importar carta" is clicked.
   ipcRenderer.on('trigger-open-menu-dialog', () => {
-    console.log('[Preload Script] Received "trigger-open-menu-dialog" from main process.');
-    // Now invoke the actual IPC handler that api.js listens for.
-    // This assumes 'open-menu-dialog' is the IPC channel that api.js's openMenuDialog function is tied to
-    // via an ipcMain.on('open-menu-dialog', ...) listener in api.js.
     ipcRenderer.send('open-menu-dialog');
   });
-  console.log('[Preload Script] "trigger-open-menu-dialog" listener set up.');
 
 } catch (error) {
   console.error('[Preload Script] CRITICAL ERROR during preload execution:', error);
