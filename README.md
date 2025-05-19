@@ -70,12 +70,12 @@ Variously created when running any of the `build` or `dist` scripts
 
 ### Electron App Post Build
 - `npm run postbuild:electron`
-  - Fixes the paths in the generated `dist/svelte/index.html`
+  - Replaces the generated `dist/electron/renderer` with contents of `dist/svelte`
+  - Fixes the paths in `dist/renderer/index.html` for file:// access
   - Triggered by completion of `build:electron`
     - Needed because 
       - Dev mode for Svelte can use relative paths because it is a web server using http://
       - Production mode (Electron app) must use absolute paths because it uses file://
-  - Replaces the generated `dist/electron/renderer` with contents of `dist/svelte`
 
 ### Create Distribution Directory
 - `npm run dist:dir`

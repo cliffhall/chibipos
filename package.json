@@ -11,7 +11,7 @@
     "build": "npm run clean && npm run build:svelte && npm run build:electron && node scripts/copy-files.js",
     "build:svelte": "npm run prepare && npx vite build --config vite.svelte.config.js",
     "build:electron": "electron-vite build --config vite.electron.config.js",
-    "postbuild:electron": "node scripts/fix-html-paths.js dist/svelte/index.html && rimraf dist/electron/renderer && cpy \"dist/svelte/**\" \"dist/electron/renderer\"",
+    "postbuild:electron": "rimraf dist/electron/renderer && cpy \"dist/svelte/**\" \"dist/electron/renderer\" && node scripts/fix-html-paths.js dist/electron/renderer/index.html",
     "dist:dir": "npm run build && electron-builder --dir",
     "dist:all": "npm run build && electron-builder -mwl",
     "prepare": "svelte-kit sync",
